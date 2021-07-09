@@ -47,11 +47,11 @@
 typedef enum { front = 0, left, right, back } sensorNum;
 
 typedef struct {
-    uint32_t  c;      //[0-65536]
-    uint32_t  r;
-    uint32_t  g;
-    uint32_t  b;
-  } rgbc_t; //RGBC
+  uint32_t  c;      //[0-65536]
+  uint32_t  r;
+  uint32_t  g;
+  uint32_t  b;
+} rgbc_t; //RGBC
 
 typedef enum {
   black=0,  white,   grey,
@@ -60,9 +60,9 @@ typedef enum {
 } color_t;
 
 typedef struct{
-	uint16_t h;       //[0,360]
-	uint8_t  s;       //[0,100]
-	uint8_t  l;       //[0,100]
+  uint16_t h;       //[0,360]
+  uint8_t  s;       //[0,100]
+  uint8_t  l;       //[0,100]
 } hsl_t;  //HSL
 
 typedef struct {
