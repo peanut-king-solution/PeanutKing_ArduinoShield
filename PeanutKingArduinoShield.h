@@ -36,7 +36,7 @@
 #define ADDR_COMPASS 1
 #define ADDR_MULPLXR 1
 
-#define colorSensor
+// #define colorSensor
 
 // PeanutkingCompass
 // oled
@@ -93,16 +93,15 @@ class Multiplexer {
     message[0]=(1 << i);
    
     I2CSend(TCAADDR, message, 1);
-
   }
 };
 
 
 //color sensor
-class color_sensor {
+class colorSensor {
  public:
-   Multiplexer Multiplexer;
-  color_sensor() {
+  Multiplexer Multiplexer;
+  colorSensor() {
   }
 
   color_t getcolor(uint8_t index) {
@@ -110,7 +109,6 @@ class color_sensor {
     Multiplexer.select(index);
     I2CSend(0x11,0x01, 1);
     I2CRead(0x11, buff, 1);
-
 
     return buff[0];
   }
@@ -150,8 +148,6 @@ class color_sensor {
      //return rgbc;
   }
 
-
-
 };
 
 
@@ -164,24 +160,24 @@ class Button {
   }
 
   bool get(uint8_t i) {
-    uint8_t value, button;
+    uint8_t button;
+    uint16_t value;
 
     value = analogRead(pin);
 
-    if      (value > 690)  button  = 0;
-    else if (value > 660) button  = 1;
-    else if (value > 630) button  = 2;
-    else if (value > 600) button  = 4;
-    else if (value > 570) button  = 3;
-    else if (value > 550) button  = 5;
-    else if (value > 530) button  = 6;
+    if      (value > 550) button  = 0;
+    else if (value > 330) button  = 1;
+    else if (value > 230) button  = 2;
+    else if (value > 180) button  = 3;
+    else if (value > 140) button  = 4;
+    else if (value > 120) button  = 5;
+    else if (value > 105) button  = 6;
     else                  button  = 7;
 
     return (button&(1<<i));
   }
 
   byte pin = A5;
-
 };
 
 
@@ -191,8 +187,7 @@ class Compass {
   Compass() {
   }
   float get(int8_t addr = 8, int8_t cmd = 0x55) {
-    uint8_t received_byte[3] = {0,0,0};
-    uint8_t i=0;
+    uint8_t i=0, received_byte[3] = {0,0,0};
     uint16_t temp=0;
     float answer = 888;
     Wire.beginTransmission(addr);
@@ -205,10 +200,8 @@ class Compass {
     temp  = received_byte[1] & 0xFF;
     temp |= (received_byte[2] << 8);
     answer = temp/100.0;
-
     return answer;
   }
-
 };
 
 // getUltrasonic --------------------------------------------------
@@ -216,6 +209,8 @@ class Ultrasonic {
  public:
   Ultrasonic(uint8_t tx, uint8_t rx) :
   txPin(tx), rxPin(rx) {
+    pinMode(tx, OUTPUT);
+    pinMode(rx, INPUT);
   }
   uint16_t get() {
     uint32_t duration=0;
@@ -229,21 +224,23 @@ class Ultrasonic {
     distance = ( duration==0 ) ? 888 : duration*0.017; //0.034/2;
     return distance;
   }
-  
-  uint8_t txPin, rxPin;
+  const uint8_t txPin, rxPin;
 };
 
 // PeanutKingArduinoShield -----------------------------------------------------
 class PeanutKingArduinoShield {
  public:
   PeanutKingArduinoShield() {
-     
+    pinMode(2, OUTPUT);
+    digitalWrite(2, HIGH);
   }
-  hsl_t readhsl(uint8_t index);
-  color_sensor rgbcolor;
-  Button Button;
+  Button      button;
+  Compass     compass;
+  colorSensor rgbcolor;
+  
+  hsl_t   readhsl(uint8_t index);
   color_t readcolor(uint8_t index);
-  rgbc_t readrgb(uint8_t index);
+  rgbc_t  readrgb(uint8_t index);
 };
 
 #endif

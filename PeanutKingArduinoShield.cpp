@@ -11,7 +11,6 @@
 #include "PeanutKingArduinoShield.h"
 
 
-
 void I2CSend(int8_t addr, uint8_t *data, uint8_t length) {
   Wire.beginTransmission(addr);
   Wire.write(data, length);
@@ -20,12 +19,9 @@ void I2CSend(int8_t addr, uint8_t *data, uint8_t length) {
 
 void I2CRead(int8_t addr, uint8_t *data, uint8_t length) {
   uint8_t i=0;
-
-
-   Wire.requestFrom((int)addr, (int)length);
+  Wire.requestFrom((int)addr, (int)length);
   while (Wire.available()) {
     data[i++] = Wire.read();
-   
   }
 }
 
