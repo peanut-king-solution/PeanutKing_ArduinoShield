@@ -35,76 +35,653 @@
 
 */
 
+#include "oled.h"
 #include "oledScreen.h"
 
+#define WIDTH       128
+#define HEIGHT      64
+#define PAGE_HEIGHT 8
 
-#if defined(U8G_WITH_PINLIST)
-uint8_t U8GLIB::initSPI(u8g_dev_t *dev, uint8_t sck, uint8_t mosi, uint8_t cs, uint8_t a0, uint8_t reset) {
+
+#if defined(OLED_WITH_PINLIST)
+uint8_t OLEDLIB::initSPI(oled_dev_t *dev, uint8_t sck, uint8_t mosi, uint8_t cs, uint8_t a0, uint8_t reset) {
   prepare();
-  return u8g_InitSPI(&u8g, dev, sck, mosi, cs, a0, reset);
+  return oled_InitSPI(&oled, dev, sck, mosi, cs, a0, reset);
 }
 
-uint8_t U8GLIB::initHWSPI(u8g_dev_t *dev, uint8_t cs, uint8_t a0, uint8_t reset) {
+uint8_t OLEDLIB::initHWSPI(oled_dev_t *dev, uint8_t cs, uint8_t a0, uint8_t reset) {
   prepare();
-  return u8g_InitHWSPI(&u8g, dev, cs, a0, reset);
+  return oled_InitHWSPI(&oled, dev, cs, a0, reset);
 }
 
-uint8_t U8GLIB::initI2C(u8g_dev_t *dev, uint8_t options) {
+uint8_t OLEDLIB::initI2C(oled_dev_t *dev, uint8_t options) {
   prepare();
-  return u8g_InitI2C(&u8g, dev, options);
+  return oled_InitI2C(&oled, dev, options);
 }
 
-uint8_t U8GLIB::init8Bit(u8g_dev_t *dev, uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3, uint8_t d4, uint8_t d5, uint8_t d6, uint8_t d7, uint8_t en, uint8_t cs1, uint8_t cs2, uint8_t di, uint8_t rw, uint8_t reset) {
+uint8_t OLEDLIB::init8Bit(oled_dev_t *dev, uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3, uint8_t d4, uint8_t d5, uint8_t d6, uint8_t d7, uint8_t en, uint8_t cs1, uint8_t cs2, uint8_t di, uint8_t rw, uint8_t reset) {
   prepare();
-  return u8g_Init8Bit(&u8g, dev, d0, d1, d2, d3, d4, d5, d6, d7, en, cs1, cs2, di, rw, reset); 
+  return oled_Init8Bit(&oled, dev, d0, d1, d2, d3, d4, d5, d6, d7, en, cs1, cs2, di, rw, reset); 
 }
 
-uint8_t U8GLIB::init8BitFixedPort(u8g_dev_t *dev, uint8_t en, uint8_t cs, uint8_t di, uint8_t rw, uint8_t reset) {
+uint8_t OLEDLIB::init8BitFixedPort(oled_dev_t *dev, uint8_t en, uint8_t cs, uint8_t di, uint8_t rw, uint8_t reset) {
   prepare();
-  return u8g_Init8BitFixedPort(&u8g, dev, en, cs, di, rw, reset);
+  return oled_Init8BitFixedPort(&oled, dev, en, cs, di, rw, reset);
 }
 
-uint8_t U8GLIB::initRW8Bit(u8g_dev_t *dev, uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3, uint8_t d4, uint8_t d5, uint8_t d6, uint8_t d7, uint8_t cs, uint8_t a0, uint8_t wr, uint8_t rd, uint8_t reset) {
+uint8_t OLEDLIB::initRW8Bit(oled_dev_t *dev, uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3, uint8_t d4, uint8_t d5, uint8_t d6, uint8_t d7, uint8_t cs, uint8_t a0, uint8_t wr, uint8_t rd, uint8_t reset) {
   prepare();
-  return u8g_InitRW8Bit(&u8g, dev, d0, d1, d2, d3, d4, d5, d6, d7, cs, a0, wr, rd, reset); 
+  return oled_InitRW8Bit(&oled, dev, d0, d1, d2, d3, d4, d5, d6, d7, cs, a0, wr, rd, reset); 
 }
 #endif
 
 
 
+/*================================== ssd1306_128x64 ====================================*/
+/*======================================================================================*/
+
+/*
+  oled_dev_ssd1306_128x64.c
+  Universal 8bit Graphics Library
+*/
+
+
+/* init sequence adafruit 128x64 OLED (NOT TESTED) */
+static const uint8_t oled_dev_ssd1306_128x64_adafruit1_init_seq[] PROGMEM = {
+  OLED_ESC_CS(0),             /* disable chip */
+  OLED_ESC_ADR(0),           /* instruction mode */
+  OLED_ESC_RST(1),           /* do reset low pulse with (1*16)+2 milliseconds */
+  OLED_ESC_CS(1),             /* enable chip */
+
+  0x0ae,        /* display off, sleep mode */
+  0x0d5, 0x080,   /* clock divide ratio (0x00=1) and oscillator frequency (0x8) */
+  0x0a8, 0x03f,   /* */
+
+  0x0d3, 0x000,   /*  */
+
+  0x040,        /* start line */
+  
+  0x08d, 0x010,   /* [1] charge pump setting (p62): 0x014 enable, 0x010 disable */
+
+  0x020, 0x000,   /* */
+  0x0a1,        /* segment remap a0/a1*/
+  0x0c8,        /* c0: scan dir normal, c8: reverse */
+  0x0da, 0x012,   /* com pin HW config, sequential com pin config (bit 4), disable left/right remap (bit 5) */
+  0x081, 0x09f,   /* [1] set contrast control */
+  0x0d9, 0x022,   /* [1] pre-charge period 0x022/f1*/
+  0x0db, 0x040,   /* vcomh deselect level */
+  
+  0x02e,        /* 2012-05-27: Deactivate scroll */ 
+  0x0a4,        /* output ram to display */
+  0x0a6,        /* none inverted normal display mode */
+  0x0af,        /* display on */
+
+  OLED_ESC_CS(0),      /* disable chip */
+  OLED_ESC_END         /* end of sequence */
+};
+
+/* init sequence adafruit 128x64 OLED (NOT TESTED) */
+static const uint8_t oled_dev_ssd1306_128x64_adafruit2_init_seq[] PROGMEM = {
+  OLED_ESC_CS(0),       /* disable chip */
+  OLED_ESC_ADR(0),      /* instruction mode */
+  OLED_ESC_RST(1),      /* do reset low pulse with (1*16)+2 milliseconds */
+  OLED_ESC_CS(1),       /* enable chip */
+
+  0x0ae,        /* display off, sleep mode */
+  0x0d5, 0x080,   /* clock divide ratio (0x00=1) and oscillator frequency (0x8) */
+  0x0a8, 0x03f,   /* */
+
+  0x0d3, 0x000,   /*  */
+
+  0x040,        /* start line */
+  
+  0x08d, 0x014,   /* [2] charge pump setting (p62): 0x014 enable, 0x010 disable */
+
+  0x020, 0x000,   /* */
+  0x0a1,        /* segment remap a0/a1*/
+  0x0c8,        /* c0: scan dir normal, c8: reverse */
+  0x0da, 0x012,   /* com pin HW config, sequential com pin config (bit 4), disable left/right remap (bit 5) */
+  0x081, 0x0cf,   /* [2] set contrast control */
+  0x0d9, 0x0f1,   /* [2] pre-charge period 0x022/f1*/
+  0x0db, 0x040,   /* vcomh deselect level */
+  
+  0x02e,        /* 2012-05-27: Deactivate scroll */ 
+  0x0a4,        /* output ram to display */
+  0x0a6,        /* none inverted normal display mode */
+  0x0af,        /* display on */
+
+  OLED_ESC_CS(0),        /* disable chip */
+  OLED_ESC_END           /* end of sequence */
+};
+
+/* init sequence adafruit 128x64 OLED (NOT TESTED), like adafruit3, but with page addressing mode */
+static const uint8_t oled_dev_ssd1306_128x64_adafruit3_init_seq[] PROGMEM = {
+  OLED_ESC_CS(0),             /* disable chip */
+  OLED_ESC_ADR(0),           /* instruction mode */
+  OLED_ESC_RST(1),           /* do reset low pulse with (1*16)+2 milliseconds */
+  OLED_ESC_CS(1),             /* enable chip */
+
+  0x0ae,        /* display off, sleep mode */
+  0x0d5, 0x080,    /* clock divide ratio (0x00=1) and oscillator frequency (0x8) */
+  0x0a8, 0x03f,    /* */
+
+  0x0d3, 0x000,    /*  */
+
+  0x040,        /* start line */
+  
+  0x08d, 0x014,    /* [2] charge pump setting (p62): 0x014 enable, 0x010 disable */
+
+  0x020, 0x002,    /* 2012-05-27: page addressing mode */
+  0x0a1,        /* segment remap a0/a1*/
+  0x0c8,        /* c0: scan dir normal, c8: reverse */
+  0x0da, 0x012,    /* com pin HW config, sequential com pin config (bit 4), disable left/right remap (bit 5) */
+  0x081, 0x0cf,    /* [2] set contrast control */
+  0x0d9, 0x0f1,    /* [2] pre-charge period 0x022/f1*/
+  0x0db, 0x040,    /* vcomh deselect level */
+  
+  0x02e,        /* 2012-05-27: Deactivate scroll */ 
+  0x0a4,        /* output ram to display */
+  0x0a6,        /* none inverted normal display mode */
+  0x0af,        /* display on */
+
+  OLED_ESC_CS(0),             /* disable chip */
+  OLED_ESC_END                /* end of sequence */
+};
+
+/* init sequence Univision datasheet (NOT TESTED) */
+static const uint8_t oled_dev_ssd1306_128x64_univision_init_seq[] PROGMEM = {
+  OLED_ESC_CS(0),             /* disable chip */
+  OLED_ESC_ADR(0),           /* instruction mode */
+  OLED_ESC_RST(1),           /* do reset low pulse with (1*16)+2 milliseconds */
+  OLED_ESC_CS(1),             /* enable chip */
+
+  0x0ae,        /* display off, sleep mode */
+  0x0d5, 0x080,    /* clock divide ratio (0x00=1) and oscillator frequency (0x8) */
+  0x0a8, 0x03f,    /* multiplex ratio */
+  0x0d3, 0x000,    /* display offset */
+  0x040,        /* start line */
+  0x08d, 0x010,    /* charge pump setting (p62): 0x014 enable, 0x010 disable */
+  0x0a1,        /* segment remap a0/a1*/
+  0x0c8,        /* c0: scan dir normal, c8: reverse */
+  0x0da, 0x012,    /* com pin HW config, sequential com pin config (bit 4), disable left/right remap (bit 5) */
+  0x081, 0x09f,    /* set contrast control */
+  0x0d9, 0x022,    /* pre-charge period */
+  0x0db, 0x040,    /* vcomh deselect level */
+  0x022, 0x000,    /* page addressing mode WRONG: 3 byte cmd! */
+  0x0a4,        /* output ram to display */
+  0x0a6,        /* none inverted normal display mode */
+  0x0af,        /* display on */
+  OLED_ESC_CS(0),             /* disable chip */
+  OLED_ESC_END                /* end of sequence */
+};
+
+/* select one init sequence here */
+//#define oled_dev_ssd1306_128x64_init_seq oled_dev_ssd1306_128x64_univision_init_seq
+//#define oled_dev_ssd1306_128x64_init_seq oled_dev_ssd1306_128x64_adafruit1_init_seq
+// 26. Apr 2014: in this thead: http://forum.arduino.cc/index.php?topic=234930.msg1696754;topicseen#msg1696754
+// it is mentiond, that adafruit2_init_seq works better --> this will be used by the ssd1306_adafruit device
+//#define oled_dev_ssd1306_128x64_init_seq oled_dev_ssd1306_128x64_adafruit2_init_seq
+
+#define oled_dev_ssd1306_128x64_init_seq oled_dev_ssd1306_128x64_adafruit3_init_seq
+
+
+static const uint8_t oled_dev_ssd1306_128x64_data_start[] PROGMEM = {
+  OLED_ESC_ADR(0),           /* instruction mode */
+  OLED_ESC_CS(1),             /* enable chip */
+  0x010,    /* set upper 4 bit of the col adr to 0 */
+  0x000,    /* set lower 4 bit of the col adr to 0  */
+  OLED_ESC_END                /* end of sequence */
+};
+
+/* the sh1106 is compatible to the ssd1306, but is 132x64. display seems to be centered */
+static const uint8_t oled_dev_sh1106_128x64_data_start[] PROGMEM = {
+  OLED_ESC_ADR(0),           /* instruction mode */
+  OLED_ESC_CS(1),             /* enable chip */
+  0x010,    /* set upper 4 bit of the col adr to 0 */
+  0x002,    /* set lower 4 bit of the col adr to 2 (centered display with sh1106)  */
+  OLED_ESC_END                /* end of sequence */
+};
+
+static const uint8_t oled_dev_ssd13xx_sleep_on[] PROGMEM = {
+  OLED_ESC_ADR(0),           /* instruction mode */
+  OLED_ESC_CS(1),             /* enable chip */
+  0x0ae,    /* display off */      
+  OLED_ESC_CS(0),             /* disable chip, bugfix 12 nov 2014 */
+  OLED_ESC_END                /* end of sequence */
+};
+
+static const uint8_t oled_dev_ssd13xx_sleep_off[] PROGMEM = {
+  OLED_ESC_ADR(0),           /* instruction mode */
+  OLED_ESC_CS(1),             /* enable chip */
+  0x0af,    /* display on */      
+  OLED_ESC_DLY(50),       /* delay 50 ms */
+  OLED_ESC_CS(0),             /* disable chip, bugfix 12 nov 2014 */
+  OLED_ESC_END                /* end of sequence */
+};
+
+uint8_t oled_dev_ssd1306_128x64_fn(oled_t *oled, oled_dev_t *dev, uint8_t msg, void *arg) {
+  switch(msg) {
+    case OLED_DEV_MSG_INIT:
+      oled_InitCom(oled, dev, OLED_SPI_CLK_CYCLE_300NS);
+      oled_WriteEscSeqP(oled, dev, oled_dev_ssd1306_128x64_adafruit2_init_seq);
+      break;
+    case OLED_DEV_MSG_STOP:
+      break;
+    case OLED_DEV_MSG_PAGE_NEXT:
+      {
+        oled_pb_t *pb = (oled_pb_t *)(dev->dev_mem);
+        oled_WriteEscSeqP(oled, dev, oled_dev_ssd1306_128x64_data_start);    
+        oled_WriteByte(oled, dev, 0x0b0 | pb->p.page); /* select current page (SSD1306) */
+        oled_SetAddress(oled, dev, 1);           /* data mode */
+        if ( oled_pb_WriteBuffer(pb, oled, dev) == 0 )
+          return 0;
+        oled_SetChipSelect(oled, dev, 0);
+      }
+      break;
+    case OLED_DEV_MSG_SLEEP_ON:
+      oled_WriteEscSeqP(oled, dev, oled_dev_ssd13xx_sleep_on);    
+      return 1;
+    case OLED_DEV_MSG_SLEEP_OFF:
+      oled_WriteEscSeqP(oled, dev, oled_dev_ssd13xx_sleep_off);    
+      return 1;
+    case OLED_DEV_MSG_CONTRAST:
+      {
+        oled_SetChipSelect(oled, dev, 1);
+        oled_SetAddress(oled, dev, 0); /* instruction mode */
+        oled_WriteByte(oled, dev, 0x81);
+        oled_WriteByte(oled, dev, *(uint8_t *) arg);
+        oled_SetChipSelect(oled, dev, 0);
+        return 1;
+      }
+  }
+  return oled_dev_pb8v1_base_fn(oled, dev, msg, arg);
+}
+
+uint8_t oled_dev_ssd1306_adafruit_128x64_fn(oled_t *oled, oled_dev_t *dev, uint8_t msg, void *arg) {
+  switch(msg) {
+    case OLED_DEV_MSG_INIT:
+      oled_InitCom(oled, dev, OLED_SPI_CLK_CYCLE_300NS);
+      oled_WriteEscSeqP(oled, dev, oled_dev_ssd1306_128x64_init_seq);
+      break;
+    case OLED_DEV_MSG_STOP:
+      break;
+    case OLED_DEV_MSG_PAGE_NEXT: 
+      {
+        oled_pb_t *pb = (oled_pb_t *)(dev->dev_mem);
+        oled_WriteEscSeqP(oled, dev, oled_dev_ssd1306_128x64_data_start);    
+        oled_WriteByte(oled, dev, 0x0b0 | pb->p.page); /* select current page (SSD1306) */
+        oled_SetAddress(oled, dev, 1);           /* data mode */
+        if ( oled_pb_WriteBuffer(pb, oled, dev) == 0 )
+          return 0;
+        oled_SetChipSelect(oled, dev, 0);
+      }
+      break;
+    case OLED_DEV_MSG_SLEEP_ON:
+      oled_WriteEscSeqP(oled, dev, oled_dev_ssd13xx_sleep_on);    
+      return 1;
+    case OLED_DEV_MSG_SLEEP_OFF:
+      oled_WriteEscSeqP(oled, dev, oled_dev_ssd13xx_sleep_off);    
+      return 1;
+    case OLED_DEV_MSG_CONTRAST:
+      {
+        oled_SetChipSelect(oled, dev, 1);
+        oled_SetAddress(oled, dev, 0); /* instruction mode */
+        oled_WriteByte(oled, dev, 0x81);
+        oled_WriteByte(oled, dev, *(uint8_t *) arg);
+        oled_SetChipSelect(oled, dev, 0);
+        return 1;
+      }
+  }
+  return oled_dev_pb8v1_base_fn(oled, dev, msg, arg);
+}
+
+uint8_t oled_dev_sh1106_128x64_fn(oled_t *oled, oled_dev_t *dev, uint8_t msg, void *arg) {
+  switch(msg) {
+    case OLED_DEV_MSG_INIT:
+      oled_InitCom(oled, dev, OLED_SPI_CLK_CYCLE_300NS);
+      oled_WriteEscSeqP(oled, dev, oled_dev_ssd1306_128x64_init_seq);
+      break;
+    case OLED_DEV_MSG_STOP:
+      break;
+    case OLED_DEV_MSG_PAGE_NEXT:
+      {
+        oled_pb_t *pb = (oled_pb_t *)(dev->dev_mem);
+        oled_WriteEscSeqP(oled, dev, oled_dev_sh1106_128x64_data_start);    
+        oled_WriteByte(oled, dev, 0x0b0 | pb->p.page); /* select current page (SSD1306) */
+        oled_SetAddress(oled, dev, 1);           /* data mode */
+        if ( oled_pb_WriteBuffer(pb, oled, dev) == 0 )
+          return 0;
+        oled_SetChipSelect(oled, dev, 0);
+      }
+      break;
+    case OLED_DEV_MSG_SLEEP_ON:
+      oled_WriteEscSeqP(oled, dev, oled_dev_ssd13xx_sleep_on);    
+      return 1;
+    case OLED_DEV_MSG_SLEEP_OFF:
+      oled_WriteEscSeqP(oled, dev, oled_dev_ssd13xx_sleep_off);    
+      return 1;
+    case OLED_DEV_MSG_CONTRAST:
+      {
+        oled_SetChipSelect(oled, dev, 1);
+        oled_SetAddress(oled, dev, 0); /* instruction mode */
+        oled_WriteByte(oled, dev, 0x81);
+        oled_WriteByte(oled, dev, *(uint8_t *) arg);
+        oled_SetChipSelect(oled, dev, 0);
+        return 1;
+      }
+  }
+  return oled_dev_pb8v1_base_fn(oled, dev, msg, arg);
+}
+
+
+uint8_t oled_dev_ssd1306_128x64_2x_fn(oled_t *oled, oled_dev_t *dev, uint8_t msg, void *arg) {
+  switch(msg) {
+    case OLED_DEV_MSG_INIT:
+      oled_InitCom(oled, dev, OLED_SPI_CLK_CYCLE_300NS);
+      oled_WriteEscSeqP(oled, dev, oled_dev_ssd1306_128x64_init_seq);
+      break;
+    case OLED_DEV_MSG_STOP:
+      break;
+    case OLED_DEV_MSG_PAGE_NEXT:
+      {
+        oled_pb_t *pb = (oled_pb_t *)(dev->dev_mem);
+  
+        oled_WriteEscSeqP(oled, dev, oled_dev_ssd1306_128x64_data_start);    
+        oled_WriteByte(oled, dev, 0x0b0 | (pb->p.page*2)); /* select current page (SSD1306) */
+        oled_SetAddress(oled, dev, 1);           /* data mode */
+        oled_WriteSequence(oled, dev, pb->width, pb->buf); 
+        oled_SetChipSelect(oled, dev, 0);
+  
+        oled_WriteEscSeqP(oled, dev, oled_dev_ssd1306_128x64_data_start);    
+        oled_WriteByte(oled, dev, 0x0b0 | (pb->p.page*2+1)); /* select current page (SSD1306) */
+        oled_SetAddress(oled, dev, 1);           /* data mode */
+        oled_WriteSequence(oled, dev, pb->width, (uint8_t *)(pb->buf)+pb->width); 
+        oled_SetChipSelect(oled, dev, 0);
+      }
+      break;
+    case OLED_DEV_MSG_SLEEP_ON:
+      oled_WriteEscSeqP(oled, dev, oled_dev_ssd13xx_sleep_on);    
+      return 1;
+    case OLED_DEV_MSG_SLEEP_OFF:
+      oled_WriteEscSeqP(oled, dev, oled_dev_ssd13xx_sleep_off);    
+      return 1;
+    case OLED_DEV_MSG_CONTRAST:
+      {
+        oled_SetChipSelect(oled, dev, 1);
+        oled_SetAddress(oled, dev, 0); /* instruction mode */
+        oled_WriteByte(oled, dev, 0x81);
+        oled_WriteByte(oled, dev, *(uint8_t *) arg);
+        oled_SetChipSelect(oled, dev, 0);
+        return 1;
+      }
+  }
+  return oled_dev_pb16v1_base_fn(oled, dev, msg, arg);
+}
+
+uint8_t oled_dev_sh1106_128x64_2x_fn(oled_t *oled, oled_dev_t *dev, uint8_t msg, void *arg) {
+  switch(msg) {
+    case OLED_DEV_MSG_INIT:
+      oled_InitCom(oled, dev, OLED_SPI_CLK_CYCLE_300NS);
+      oled_WriteEscSeqP(oled, dev, oled_dev_ssd1306_128x64_init_seq);
+      break;
+    case OLED_DEV_MSG_STOP:
+      break;
+    case OLED_DEV_MSG_PAGE_NEXT:
+      {
+        oled_pb_t *pb = (oled_pb_t *)(dev->dev_mem);
+  
+        oled_WriteEscSeqP(oled, dev, oled_dev_sh1106_128x64_data_start);    
+        oled_WriteByte(oled, dev, 0x0b0 | (pb->p.page*2)); /* select current page (SSD1306) */
+        oled_SetAddress(oled, dev, 1);           /* data mode */
+        oled_WriteSequence(oled, dev, pb->width, pb->buf); 
+        oled_SetChipSelect(oled, dev, 0);
+  
+        oled_WriteEscSeqP(oled, dev, oled_dev_sh1106_128x64_data_start);    
+        oled_WriteByte(oled, dev, 0x0b0 | (pb->p.page*2+1)); /* select current page (SSD1306) */
+        oled_SetAddress(oled, dev, 1);           /* data mode */
+        oled_WriteSequence(oled, dev, pb->width, (uint8_t *)(pb->buf)+pb->width); 
+        oled_SetChipSelect(oled, dev, 0);
+      }
+      break;
+    case OLED_DEV_MSG_SLEEP_ON:
+      oled_WriteEscSeqP(oled, dev, oled_dev_ssd13xx_sleep_on);    
+      return 1;
+    case OLED_DEV_MSG_SLEEP_OFF:
+      oled_WriteEscSeqP(oled, dev, oled_dev_ssd13xx_sleep_off);    
+      return 1;
+    case OLED_DEV_MSG_CONTRAST:
+      {
+        oled_SetChipSelect(oled, dev, 1);
+        oled_SetAddress(oled, dev, 0); /* instruction mode */
+        oled_WriteByte(oled, dev, 0x81);
+        oled_WriteByte(oled, dev, *(uint8_t *) arg);
+        oled_SetChipSelect(oled, dev, 0);
+        return 1;
+      }
+  }
+  return oled_dev_pb16v1_base_fn(oled, dev, msg, arg);
+}
+
+
+
+
+OLED_PB_DEV(oled_dev_ssd1306_128x64_sw_spi, WIDTH, HEIGHT, PAGE_HEIGHT, oled_dev_ssd1306_128x64_fn, OLED_COM_SW_SPI);
+OLED_PB_DEV(oled_dev_ssd1306_128x64_hw_spi, WIDTH, HEIGHT, PAGE_HEIGHT, oled_dev_ssd1306_128x64_fn, OLED_COM_HW_SPI);
+OLED_PB_DEV(oled_dev_ssd1306_128x64_i2c, WIDTH, HEIGHT, PAGE_HEIGHT, oled_dev_ssd1306_128x64_fn, OLED_COM_SSD_I2C);
+
+OLED_PB_DEV(oled_dev_ssd1306_adafruit_128x64_sw_spi, WIDTH, HEIGHT, PAGE_HEIGHT, oled_dev_ssd1306_adafruit_128x64_fn, OLED_COM_SW_SPI);
+OLED_PB_DEV(oled_dev_ssd1306_adafruit_128x64_hw_spi, WIDTH, HEIGHT, PAGE_HEIGHT, oled_dev_ssd1306_adafruit_128x64_fn, OLED_COM_HW_SPI);
+OLED_PB_DEV(oled_dev_ssd1306_adafruit_128x64_i2c, WIDTH, HEIGHT, PAGE_HEIGHT, oled_dev_ssd1306_adafruit_128x64_fn, OLED_COM_SSD_I2C);
+
+
+uint8_t oled_dev_ssd1306_128x64_2x_buf[WIDTH*2] OLED_NOCOMMON ; 
+oled_pb_t oled_dev_ssd1306_128x64_2x_pb = { {16, HEIGHT, 0, 0, 0},  WIDTH, oled_dev_ssd1306_128x64_2x_buf}; 
+oled_dev_t oled_dev_ssd1306_128x64_2x_sw_spi = { oled_dev_ssd1306_128x64_2x_fn, &oled_dev_ssd1306_128x64_2x_pb, OLED_COM_SW_SPI };
+oled_dev_t oled_dev_ssd1306_128x64_2x_hw_spi = { oled_dev_ssd1306_128x64_2x_fn, &oled_dev_ssd1306_128x64_2x_pb, OLED_COM_HW_SPI };
+oled_dev_t oled_dev_ssd1306_128x64_2x_i2c = { oled_dev_ssd1306_128x64_2x_fn, &oled_dev_ssd1306_128x64_2x_pb, OLED_COM_SSD_I2C };
+
+
+OLED_PB_DEV(oled_dev_sh1106_128x64_sw_spi, WIDTH, HEIGHT, PAGE_HEIGHT, oled_dev_sh1106_128x64_fn, OLED_COM_SW_SPI);
+OLED_PB_DEV(oled_dev_sh1106_128x64_hw_spi, WIDTH, HEIGHT, PAGE_HEIGHT, oled_dev_sh1106_128x64_fn, OLED_COM_HW_SPI);
+OLED_PB_DEV(oled_dev_sh1106_128x64_i2c, WIDTH, HEIGHT, PAGE_HEIGHT, oled_dev_sh1106_128x64_fn, OLED_COM_SSD_I2C);
+
+uint8_t oled_dev_sh1106_128x64_2x_buf[WIDTH*2] OLED_NOCOMMON ; 
+oled_pb_t oled_dev_sh1106_128x64_2x_pb = { {16, HEIGHT, 0, 0, 0},  WIDTH, oled_dev_sh1106_128x64_2x_buf}; 
+oled_dev_t oled_dev_sh1106_128x64_2x_sw_spi = { oled_dev_sh1106_128x64_2x_fn, &oled_dev_sh1106_128x64_2x_pb, OLED_COM_SW_SPI };
+oled_dev_t oled_dev_sh1106_128x64_2x_hw_spi = { oled_dev_sh1106_128x64_2x_fn, &oled_dev_sh1106_128x64_2x_pb, OLED_COM_HW_SPI };
+oled_dev_t oled_dev_sh1106_128x64_2x_i2c = { oled_dev_sh1106_128x64_2x_fn, &oled_dev_sh1106_128x64_2x_pb, OLED_COM_SSD_I2C };
+
+
+
+/*======================================== DELAY =======================================*/
+/*======================================================================================*/
+void oled_Delay(uint16_t val) {
+	delay(val);
+}
+void oled_MicroDelay(void) {
+	delayMicroseconds(1);
+}
+void oled_10MicroDelay(void) {
+	delayMicroseconds(10);
+}
+
+
+/*======================================== pb8v1 =======================================*/
+/*======================================================================================*/
+void u8g_pb8v1_Init(u8g_pb_t *b, void *buf, u8g_uint_t width) U8G_NOINLINE;
+void u8g_pb8v1_set_pixel(u8g_pb_t *b, u8g_uint_t x, u8g_uint_t y, uint8_t color_index) U8G_NOINLINE;
+void u8g_pb8v1_SetPixel(u8g_pb_t *b, const u8g_dev_arg_pixel_t * const arg_pixel) U8G_NOINLINE ;
+void u8g_pb8v1_Set8PixelStd(u8g_pb_t *b, u8g_dev_arg_pixel_t *arg_pixel) U8G_NOINLINE;
+
+/* Obsolete, usually set by the init of the structure */
+void u8g_pb8v1_Init(u8g_pb_t *b, void *buf, u8g_uint_t width)
+{
+  b->buf = buf;
+  b->width = width;
+  u8g_pb_Clear(b);
+}
+
+void u8g_pb8v1_set_pixel(u8g_pb_t *b, u8g_uint_t x, u8g_uint_t y, uint8_t color_index)
+{
+  register uint8_t mask;
+  uint8_t *ptr = b->buf;
+  
+  y -= b->p.page_y0;
+  mask = 1;
+  y &= 0x07;
+  mask <<= y;
+  ptr += x;
+  if ( color_index )
+  {
+    *ptr |= mask;
+  }
+  else
+  {
+    mask ^=0xff;
+    *ptr &= mask;
+  }
+}
+
+
+void u8g_pb8v1_SetPixel(u8g_pb_t *b, const u8g_dev_arg_pixel_t * const arg_pixel)
+{
+  if ( arg_pixel->y < b->p.page_y0 )
+    return;
+  if ( arg_pixel->y > b->p.page_y1 )
+    return;
+  if ( arg_pixel->x >= b->width )
+    return;
+  u8g_pb8v1_set_pixel(b, arg_pixel->x, arg_pixel->y, arg_pixel->color);
+}
+
+void u8g_pb8v1_Set8PixelStd(u8g_pb_t *b, u8g_dev_arg_pixel_t *arg_pixel)
+{
+  register uint8_t pixel = arg_pixel->pixel;
+  do
+  {
+    if ( pixel & 128 )
+    {
+      u8g_pb8v1_SetPixel(b, arg_pixel);
+    }
+    switch( arg_pixel->dir )
+    {
+      case 0: arg_pixel->x++; break;
+      case 1: arg_pixel->y++; break;
+      case 2: arg_pixel->x--; break;
+      case 3: arg_pixel->y--; break;
+    }
+    pixel <<= 1;
+  } while( pixel != 0  );
+}
+
+
+void u8g_pb8v1_Set8PixelOpt2(u8g_pb_t *b, u8g_dev_arg_pixel_t *arg_pixel)
+{
+  register uint8_t pixel = arg_pixel->pixel;
+  u8g_uint_t dx = 0;
+  u8g_uint_t dy = 0;
+  
+  switch( arg_pixel->dir )
+  {
+    case 0: dx++; break;
+    case 1: dy++; break;
+    case 2: dx--; break;
+    case 3: dy--; break;
+  }
+  
+  do
+  {
+    if ( pixel & 128 )
+      u8g_pb8v1_SetPixel(b, arg_pixel);
+    arg_pixel->x += dx;
+    arg_pixel->y += dy;
+    pixel <<= 1;
+  } while( pixel != 0  );
+  
+}
+
+uint8_t u8g_dev_pb8v1_base_fn(u8g_t *u8g, u8g_dev_t *dev, uint8_t msg, void *arg)
+{
+  u8g_pb_t *pb = (u8g_pb_t *)(dev->dev_mem);
+  switch(msg)
+  {
+    case U8G_DEV_MSG_SET_8PIXEL:
+      if ( u8g_pb_Is8PixelVisible(pb, (u8g_dev_arg_pixel_t *)arg) )
+        u8g_pb8v1_Set8PixelOpt2(pb, (u8g_dev_arg_pixel_t *)arg);
+      break;
+    case U8G_DEV_MSG_SET_PIXEL:
+        u8g_pb8v1_SetPixel(pb, (u8g_dev_arg_pixel_t *)arg);
+      break;
+    case U8G_DEV_MSG_INIT:
+      break;
+    case U8G_DEV_MSG_STOP:
+      break;
+    case U8G_DEV_MSG_PAGE_FIRST:
+      u8g_pb_Clear(pb);
+      u8g_page_First(&(pb->p));
+      break;
+    case U8G_DEV_MSG_PAGE_NEXT:
+      if ( u8g_page_Next(&(pb->p)) == 0 )
+        return 0;
+      u8g_pb_Clear(pb);
+      break;
+#ifdef U8G_DEV_MSG_IS_BBX_INTERSECTION
+    case U8G_DEV_MSG_IS_BBX_INTERSECTION:
+      return u8g_pb_IsIntersection(pb, (u8g_dev_arg_bbx_t *)arg);
+#endif
+    case U8G_DEV_MSG_GET_PAGE_BOX:
+      u8g_pb_GetPageBox(pb, (u8g_box_t *)arg);
+      break;
+    case U8G_DEV_MSG_GET_WIDTH:
+      *((u8g_uint_t *)arg) = pb->width;
+      break;
+    case U8G_DEV_MSG_GET_HEIGHT:
+      *((u8g_uint_t *)arg) = pb->p.total_height;
+      break;
+    case U8G_DEV_MSG_SET_COLOR_ENTRY:
+      break;
+    case U8G_DEV_MSG_SET_XY_CB:
+      break;
+    case U8G_DEV_MSG_GET_MODE:
+      return U8G_MODE_BW;
+  }
+  return 1;
+}
+ 
+
 /*======================================== Circle ======================================*/
 /*======================================================================================*/
 
 
-static void u8g_draw_circle_section(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t x0, u8g_uint_t y0, uint8_t option) U8G_NOINLINE;
+static void oled_draw_circle_section(oled_t *oled, uint8_t x, uint8_t y, uint8_t x0, uint8_t y0, uint8_t option) OLED_NOINLINE;
 
-static void u8g_draw_circle_section(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t x0, u8g_uint_t y0, uint8_t option) {
-  if ( option & U8G_DRAW_UPPER_RIGHT ) {  /* upper right */
-    u8g_DrawPixel(u8g, x0 + x, y0 - y);
-    u8g_DrawPixel(u8g, x0 + y, y0 - x);
+static void oled_draw_circle_section(oled_t *oled, uint8_t x, uint8_t y, uint8_t x0, uint8_t y0, uint8_t option) {
+  if ( option & OLED_DRAW_UPPER_RIGHT ) {  /* upper right */
+    oled_DrawPixel(oled, x0 + x, y0 - y);
+    oled_DrawPixel(oled, x0 + y, y0 - x);
   } else
-  if ( option & U8G_DRAW_UPPER_LEFT ) {   /* upper left */
-    u8g_DrawPixel(u8g, x0 - x, y0 - y);
-    u8g_DrawPixel(u8g, x0 - y, y0 - x);
+  if ( option & OLED_DRAW_UPPER_LEFT ) {   /* upper left */
+    oled_DrawPixel(oled, x0 - x, y0 - y);
+    oled_DrawPixel(oled, x0 - y, y0 - x);
   } else
-  if ( option & U8G_DRAW_LOWER_RIGHT ) {  /* lower right */
-    u8g_DrawPixel(u8g, x0 + x, y0 + y);
-    u8g_DrawPixel(u8g, x0 + y, y0 + x);
+  if ( option & OLED_DRAW_LOWER_RIGHT ) {  /* lower right */
+    oled_DrawPixel(oled, x0 + x, y0 + y);
+    oled_DrawPixel(oled, x0 + y, y0 + x);
   } else
-  if ( option & U8G_DRAW_LOWER_LEFT ) {   /* lower left */
-    u8g_DrawPixel(u8g, x0 - x, y0 + y);
-    u8g_DrawPixel(u8g, x0 - y, y0 + x);
+  if ( option & OLED_DRAW_LOWER_LEFT ) {   /* lower left */
+    oled_DrawPixel(oled, x0 - x, y0 + y);
+    oled_DrawPixel(oled, x0 - y, y0 + x);
   }
 }
 
-void u8g_draw_circle(u8g_t *u8g, u8g_uint_t x0, u8g_uint_t y0, u8g_uint_t rad, uint8_t option) {
-  u8g_int_t f     = 1 - rad;
-  u8g_int_t ddF_x = 1;
-  u8g_int_t ddF_y = - rad*2;
-  u8g_uint_t x    = 0;
-  u8g_uint_t y    = rad;
+void oled_draw_circle(oled_t *oled, uint8_t x0, uint8_t y0, uint8_t rad, uint8_t option) {
+  int8_t f     = 1 - rad;
+  int8_t ddF_x = 1;
+  int8_t ddF_y = - rad*2;
+  uint8_t x    = 0;
+  uint8_t y    = rad;
 
-  u8g_draw_circle_section(u8g, x, y, x0, y0, option);
+  oled_draw_circle_section(oled, x, y, x0, y0, option);
   
   while ( x < y ) {
     if (f >= 0) {
@@ -116,56 +693,56 @@ void u8g_draw_circle(u8g_t *u8g, u8g_uint_t x0, u8g_uint_t y0, u8g_uint_t rad, u
     ddF_x += 2;
     f += ddF_x;
 
-    u8g_draw_circle_section(u8g, x, y, x0, y0, option);    
+    oled_draw_circle_section(oled, x, y, x0, y0, option);    
   }
 }
 
-void u8g_DrawCircle(u8g_t *u8g, u8g_uint_t x0, u8g_uint_t y0, u8g_uint_t rad, uint8_t option) {
+void oled_DrawCircle(oled_t *oled, uint8_t x0, uint8_t y0, uint8_t rad, uint8_t option) {
   /* check for bounding box */
   {
-    u8g_uint_t radp, radp2;
+    uint8_t radp, radp2;
     
     radp = rad;
     radp++;
     radp2 = radp;
     radp2 *= 2;
     
-    if ( u8g_IsBBXIntersection(u8g, x0-radp, y0-radp, radp2, radp2) == 0)
+    if ( oled_IsBBXIntersection(oled, x0-radp, y0-radp, radp2, radp2) == 0)
       return;    
   }
   /* draw circle */
-  u8g_draw_circle(u8g, x0, y0, rad, option);
+  oled_draw_circle(oled, x0, y0, rad, option);
 }
 
-static void u8g_draw_disc_section(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t x0, u8g_uint_t y0, uint8_t option) U8G_NOINLINE;
+static void oled_draw_disc_section(oled_t *oled, uint8_t x, uint8_t y, uint8_t x0, uint8_t y0, uint8_t option) OLED_NOINLINE;
 
-static void u8g_draw_disc_section(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t x0, u8g_uint_t y0, uint8_t option) {
-  if ( option & U8G_DRAW_UPPER_RIGHT ) {  /* upper right */
-    u8g_DrawVLine(u8g, x0+x, y0-y, y+1);
-    u8g_DrawVLine(u8g, x0+y, y0-x, x+1);
+static void oled_draw_disc_section(oled_t *oled, uint8_t x, uint8_t y, uint8_t x0, uint8_t y0, uint8_t option) {
+  if ( option & OLED_DRAW_UPPER_RIGHT ) {  /* upper right */
+    oled_DrawVLine(oled, x0+x, y0-y, y+1);
+    oled_DrawVLine(oled, x0+y, y0-x, x+1);
   } else
-  if ( option & U8G_DRAW_UPPER_LEFT ) {   /* upper left */
-    u8g_DrawVLine(u8g, x0-x, y0-y, y+1);
-    u8g_DrawVLine(u8g, x0-y, y0-x, x+1);
+  if ( option & OLED_DRAW_UPPER_LEFT ) {   /* upper left */
+    oled_DrawVLine(oled, x0-x, y0-y, y+1);
+    oled_DrawVLine(oled, x0-y, y0-x, x+1);
   } else
-  if ( option & U8G_DRAW_LOWER_RIGHT ) {  /* lower right */
-    u8g_DrawVLine(u8g, x0+x, y0, y+1);
-    u8g_DrawVLine(u8g, x0+y, y0, x+1);
+  if ( option & OLED_DRAW_LOWER_RIGHT ) {  /* lower right */
+    oled_DrawVLine(oled, x0+x, y0, y+1);
+    oled_DrawVLine(oled, x0+y, y0, x+1);
   } else
-  if ( option & U8G_DRAW_LOWER_LEFT ) {   /* lower left */
-    u8g_DrawVLine(u8g, x0-x, y0, y+1);
-    u8g_DrawVLine(u8g, x0-y, y0, x+1);
+  if ( option & OLED_DRAW_LOWER_LEFT ) {   /* lower left */
+    oled_DrawVLine(oled, x0-x, y0, y+1);
+    oled_DrawVLine(oled, x0-y, y0, x+1);
   }
 }
 
-void u8g_draw_disc(u8g_t *u8g, u8g_uint_t x0, u8g_uint_t y0, u8g_uint_t rad, uint8_t option) {
-  u8g_int_t f     = 1 - rad;
-  u8g_int_t ddF_x = 1;
-  u8g_int_t ddF_y = - rad*2;
-  u8g_uint_t x    = 0;
-  u8g_uint_t y    = rad;
+void oled_draw_disc(oled_t *oled, uint8_t x0, uint8_t y0, uint8_t rad, uint8_t option) {
+  int8_t f     = 1 - rad;
+  int8_t ddF_x = 1;
+  int8_t ddF_y = - rad*2;
+  uint8_t x    = 0;
+  uint8_t y    = rad;
 
-  u8g_draw_disc_section(u8g, x, y, x0, y0, option);
+  oled_draw_disc_section(oled, x, y, x0, y0, option);
   
   while ( x < y ) {
     if (f >= 0) {
@@ -177,45 +754,45 @@ void u8g_draw_disc(u8g_t *u8g, u8g_uint_t x0, u8g_uint_t y0, u8g_uint_t rad, uin
     ddF_x += 2;
     f += ddF_x;
 
-    u8g_draw_disc_section(u8g, x, y, x0, y0, option);    
+    oled_draw_disc_section(oled, x, y, x0, y0, option);    
   }
 }
 
-void u8g_DrawDisc(u8g_t *u8g, u8g_uint_t x0, u8g_uint_t y0, u8g_uint_t rad, uint8_t option) {
+void oled_DrawDisc(oled_t *oled, uint8_t x0, uint8_t y0, uint8_t rad, uint8_t option) {
   /* check for bounding box */
   {
-    u8g_uint_t radp, radp2;
+    uint8_t radp, radp2;
     
     radp = rad;
     radp++;
     radp2 = radp;
     radp2 *= 2;
     
-    if ( u8g_IsBBXIntersection(u8g, x0-radp, y0-radp, radp2, radp2) == 0)
+    if ( oled_IsBBXIntersection(oled, x0-radp, y0-radp, radp2, radp2) == 0)
       return;    
   }
   
   /* draw disc */
-  u8g_draw_disc(u8g, x0, y0, rad, option);
+  oled_draw_disc(oled, x0, y0, rad, option);
 }
 
 
 /*======================================== Bitmap ======================================*/
 /*======================================================================================*/
-void u8g_DrawHBitmap(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t cnt, const uint8_t *bitmap) {
+void oled_DrawHBitmap(oled_t *oled, uint8_t x, uint8_t y, uint8_t cnt, const uint8_t *bitmap) {
   while( cnt > 0 ) {
-    u8g_Draw8Pixel(u8g, x, y, 0, *bitmap);
+    oled_Draw8Pixel(oled, x, y, 0, *bitmap);
     bitmap++;
     cnt--;
     x+=8;
   }
 }
 
-void u8g_DrawBitmap(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t cnt, u8g_uint_t h, const uint8_t *bitmap) {
-  if ( u8g_IsBBXIntersection(u8g, x, y, cnt*8, h) == 0 )
+void oled_DrawBitmap(oled_t *oled, uint8_t x, uint8_t y, uint8_t cnt, uint8_t h, const uint8_t *bitmap) {
+  if ( oled_IsBBXIntersection(oled, x, y, cnt*8, h) == 0 )
     return;
   while( h > 0 ) {
-    u8g_DrawHBitmap(u8g, x, y, cnt, bitmap);
+    oled_DrawHBitmap(oled, x, y, cnt, bitmap);
     bitmap += cnt;
     y++;
     h--;
@@ -223,20 +800,20 @@ void u8g_DrawBitmap(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t cnt, u8g_
 }
 
 
-void u8g_DrawHBitmapP(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t cnt, const u8g_pgm_uint8_t *bitmap) {
+void oled_DrawHBitmapP(oled_t *oled, uint8_t x, uint8_t y, uint8_t cnt, const oled_pgm_uint8_t *bitmap) {
   while( cnt > 0 ) {
-    u8g_Draw8Pixel(u8g, x, y, 0, u8g_pgm_read(bitmap));
+    oled_Draw8Pixel(oled, x, y, 0, oled_pgm_read(bitmap));
     bitmap++;
     cnt--;
     x+=8;
   }
 }
 
-void u8g_DrawBitmapP(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t cnt, u8g_uint_t h, const u8g_pgm_uint8_t *bitmap) {
-  if ( u8g_IsBBXIntersection(u8g, x, y, cnt*8, h) == 0 )
+void oled_DrawBitmapP(oled_t *oled, uint8_t x, uint8_t y, uint8_t cnt, uint8_t h, const oled_pgm_uint8_t *bitmap) {
+  if ( oled_IsBBXIntersection(oled, x, y, cnt*8, h) == 0 )
     return;
   while( h > 0 ) {
-    u8g_DrawHBitmapP(u8g, x, y, cnt, bitmap);
+    oled_DrawHBitmapP(oled, x, y, cnt, bitmap);
     bitmap += cnt;
     y++;
     h--;
@@ -245,11 +822,11 @@ void u8g_DrawBitmapP(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t cnt, u8g
 
 /*=========================================================================*/
 
-static void u8g_DrawHXBM(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t w, const uint8_t *bitmap) {
+static void oled_DrawHXBM(oled_t *oled, uint8_t x, uint8_t y, uint8_t w, const uint8_t *bitmap) {
   uint8_t d;
   x+=7;
   while( w >= 8 ) {
-    u8g_Draw8Pixel(u8g, x, y, 2, *bitmap);
+    oled_Draw8Pixel(oled, x, y, 2, *bitmap);
     bitmap++;
     w-= 8;
     x+=8;
@@ -259,7 +836,7 @@ static void u8g_DrawHXBM(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t w, c
     x -= 7;
     do {
       if ( d & 1 )
-        u8g_DrawPixel(u8g, x, y);
+        oled_DrawPixel(oled, x, y);
       x++;
       w--;
       d >>= 1;      
@@ -267,38 +844,38 @@ static void u8g_DrawHXBM(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t w, c
   }
 }
 
-void u8g_DrawXBM(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t w, u8g_uint_t h, const uint8_t *bitmap) {
-  u8g_uint_t b;
+void oled_DrawXBM(oled_t *oled, uint8_t x, uint8_t y, uint8_t w, uint8_t h, const uint8_t *bitmap) {
+  uint8_t b;
   b = w;
   b += 7;
   b >>= 3;
   
-  if ( u8g_IsBBXIntersection(u8g, x, y, w, h) == 0 )
+  if ( oled_IsBBXIntersection(oled, x, y, w, h) == 0 )
     return;
   
   while( h > 0 ) {
-    u8g_DrawHXBM(u8g, x, y, w, bitmap);
+    oled_DrawHXBM(oled, x, y, w, bitmap);
     bitmap += b;
     y++;
     h--;
   }
 }
 
-static void u8g_DrawHXBMP(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t w, const u8g_pgm_uint8_t *bitmap) {
+static void oled_DrawHXBMP(oled_t *oled, uint8_t x, uint8_t y, uint8_t w, const oled_pgm_uint8_t *bitmap) {
   uint8_t d;
   x+=7;
   while( w >= 8 ) {
-    u8g_Draw8Pixel(u8g, x, y, 2, u8g_pgm_read(bitmap));
+    oled_Draw8Pixel(oled, x, y, 2, oled_pgm_read(bitmap));
     bitmap++;
     w-= 8;
     x+=8;
   }
   if ( w > 0 ) {
-    d = u8g_pgm_read(bitmap);
+    d = oled_pgm_read(bitmap);
     x -= 7;
     do {
       if ( d & 1 )
-        u8g_DrawPixel(u8g, x, y);
+        oled_DrawPixel(oled, x, y);
       x++;
       w--;
       d >>= 1;      
@@ -306,16 +883,16 @@ static void u8g_DrawHXBMP(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t w, 
   }
 }
 
-void u8g_DrawXBMP(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t w, u8g_uint_t h, const u8g_pgm_uint8_t *bitmap) {
-  u8g_uint_t b;
+void oled_DrawXBMP(oled_t *oled, uint8_t x, uint8_t y, uint8_t w, uint8_t h, const oled_pgm_uint8_t *bitmap) {
+  uint8_t b;
   b = w;
   b += 7;
   b >>= 3;
   
-  if ( u8g_IsBBXIntersection(u8g, x, y, w, h) == 0 )
+  if ( oled_IsBBXIntersection(oled, x, y, w, h) == 0 )
     return;
   while( h > 0 ) {
-    u8g_DrawHXBMP(u8g, x, y, w, bitmap);
+    oled_DrawHXBMP(oled, x, y, w, bitmap);
     bitmap += b;
     y++;
     h--;
@@ -327,10 +904,10 @@ void u8g_DrawXBMP(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t w, u8g_uint
 /*===================================== Rectangle ======================================*/
 /*======================================================================================*/
 
-void u8g_draw_hline(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t w) {
+void oled_draw_hline(oled_t *oled, uint8_t x, uint8_t y, uint8_t w) {
   uint8_t pixel = 0x0ff;
   while( w >= 8 ) {
-    u8g_Draw8Pixel(u8g, x, y, 0, pixel);
+    oled_Draw8Pixel(oled, x, y, 0, pixel);
     w-=8;
     x+=8;
   }
@@ -338,14 +915,14 @@ void u8g_draw_hline(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t w) {
     w ^=7;
     w++;
     pixel <<= w&7;
-    u8g_Draw8Pixel(u8g, x, y, 0, pixel);
+    oled_Draw8Pixel(oled, x, y, 0, pixel);
   }
 }
 
-void u8g_draw_vline(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t h) {
+void oled_draw_vline(oled_t *oled, uint8_t x, uint8_t y, uint8_t h) {
   uint8_t pixel = 0x0ff;
   while( h >= 8 ) {
-    u8g_Draw8Pixel(u8g, x, y, 1, pixel);
+    oled_Draw8Pixel(oled, x, y, 1, pixel);
     h-=8;
     y+=8;
   }
@@ -353,59 +930,59 @@ void u8g_draw_vline(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t h) {
     h ^=7;
     h++;
     pixel <<= h&7;
-    u8g_Draw8Pixel(u8g, x, y, 1, pixel);
+    oled_Draw8Pixel(oled, x, y, 1, pixel);
   }
 }
 
-void u8g_DrawHLine(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t w) {
-  if ( u8g_IsBBXIntersection(u8g, x, y, w, 1) == 0 )
+void oled_DrawHLine(oled_t *oled, uint8_t x, uint8_t y, uint8_t w) {
+  if ( oled_IsBBXIntersection(oled, x, y, w, 1) == 0 )
     return;
-  u8g_draw_hline(u8g, x, y, w);
+  oled_draw_hline(oled, x, y, w);
 }
 
-void u8g_DrawVLine(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t w) {
-  if ( u8g_IsBBXIntersection(u8g, x, y, 1, w) == 0 )
+void oled_DrawVLine(oled_t *oled, uint8_t x, uint8_t y, uint8_t w) {
+  if ( oled_IsBBXIntersection(oled, x, y, 1, w) == 0 )
     return;
-  u8g_draw_vline(u8g, x, y, w);
+  oled_draw_vline(oled, x, y, w);
 }
 
 /* restrictions: w > 0 && h > 0 */
-void u8g_DrawFrame(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t w, u8g_uint_t h) {
-  u8g_uint_t xtmp = x;
+void oled_DrawFrame(oled_t *oled, uint8_t x, uint8_t y, uint8_t w, uint8_t h) {
+  uint8_t xtmp = x;
   
-  if ( u8g_IsBBXIntersection(u8g, x, y, w, h) == 0 )
+  if ( oled_IsBBXIntersection(oled, x, y, w, h) == 0 )
     return;
 
-  u8g_draw_hline(u8g, x, y, w);
-  u8g_draw_vline(u8g, x, y, h);
+  oled_draw_hline(oled, x, y, w);
+  oled_draw_vline(oled, x, y, h);
   x+=w;
   x--;
-  u8g_draw_vline(u8g, x, y, h);
+  oled_draw_vline(oled, x, y, h);
   y+=h;
   y--;
-  u8g_draw_hline(u8g, xtmp, y, w);
+  oled_draw_hline(oled, xtmp, y, w);
 }
 
-void u8g_draw_box(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t w, u8g_uint_t h) {
+void oled_draw_box(oled_t *oled, uint8_t x, uint8_t y, uint8_t w, uint8_t h) {
   do {
-    u8g_draw_hline(u8g, x, y, w);
+    oled_draw_hline(oled, x, y, w);
     y++;    
     h--;
   } while( h != 0 );
 }
 
 /* restrictions: h > 0 */
-void u8g_DrawBox(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t w, u8g_uint_t h) {
-  if ( u8g_IsBBXIntersection(u8g, x, y, w, h) == 0 )
+void oled_DrawBox(oled_t *oled, uint8_t x, uint8_t y, uint8_t w, uint8_t h) {
+  if ( oled_IsBBXIntersection(oled, x, y, w, h) == 0 )
     return;
-  u8g_draw_box(u8g, x, y, w, h);
+  oled_draw_box(oled, x, y, w, h);
 }
 
 
-void u8g_DrawRFrame(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t w, u8g_uint_t h, u8g_uint_t r) {
-  u8g_uint_t xl, yu;
+void oled_DrawRFrame(oled_t *oled, uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint8_t r) {
+  uint8_t xl, yu;
 
-  if ( u8g_IsBBXIntersection(u8g, x, y, w, h) == 0 )
+  if ( oled_IsBBXIntersection(oled, x, y, w, h) == 0 )
     return;
 
   xl = x;
@@ -414,7 +991,7 @@ void u8g_DrawRFrame(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t w, u8g_ui
   yu += r;
  
   {
-    u8g_uint_t yl, xr;
+    uint8_t yl, xr;
       
     xr = x;
     xr += w;
@@ -426,14 +1003,14 @@ void u8g_DrawRFrame(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t w, u8g_ui
     yl -= r; 
     yl -= 1;
 
-    u8g_draw_circle(u8g, xl, yu, r, U8G_DRAW_UPPER_LEFT);
-    u8g_draw_circle(u8g, xr, yu, r, U8G_DRAW_UPPER_RIGHT);
-    u8g_draw_circle(u8g, xl, yl, r, U8G_DRAW_LOWER_LEFT);
-    u8g_draw_circle(u8g, xr, yl, r, U8G_DRAW_LOWER_RIGHT);
+    oled_draw_circle(oled, xl, yu, r, OLED_DRAW_UPPER_LEFT);
+    oled_draw_circle(oled, xr, yu, r, OLED_DRAW_UPPER_RIGHT);
+    oled_draw_circle(oled, xl, yl, r, OLED_DRAW_LOWER_LEFT);
+    oled_draw_circle(oled, xr, yl, r, OLED_DRAW_LOWER_RIGHT);
   }
 
   {
-    u8g_uint_t ww, hh;
+    uint8_t ww, hh;
 
     ww = w;
     ww -= r;
@@ -448,18 +1025,18 @@ void u8g_DrawRFrame(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t w, u8g_ui
     yu++;
     h--;
     w--;
-    u8g_draw_hline(u8g, xl, y, ww);
-    u8g_draw_hline(u8g, xl, y+h, ww);
-    u8g_draw_vline(u8g, x,         yu, hh);
-    u8g_draw_vline(u8g, x+w, yu, hh);
+    oled_draw_hline(oled, xl, y, ww);
+    oled_draw_hline(oled, xl, y+h, ww);
+    oled_draw_vline(oled, x,         yu, hh);
+    oled_draw_vline(oled, x+w, yu, hh);
   }
 }
 
-void u8g_DrawRBox(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t w, u8g_uint_t h, u8g_uint_t r) {
-  u8g_uint_t xl, yu;
-  u8g_uint_t yl, xr;
+void oled_DrawRBox(oled_t *oled, uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint8_t r) {
+  uint8_t xl, yu;
+  uint8_t yl, xr;
 
-  if ( u8g_IsBBXIntersection(u8g, x, y, w, h) == 0 )
+  if ( oled_IsBBXIntersection(oled, x, y, w, h) == 0 )
     return;
 
   xl = x;
@@ -477,13 +1054,13 @@ void u8g_DrawRBox(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t w, u8g_uint
   yl -= r; 
   yl -= 1;
 
-  u8g_draw_disc(u8g, xl, yu, r, U8G_DRAW_UPPER_LEFT);
-  u8g_draw_disc(u8g, xr, yu, r, U8G_DRAW_UPPER_RIGHT);
-  u8g_draw_disc(u8g, xl, yl, r, U8G_DRAW_LOWER_LEFT);
-  u8g_draw_disc(u8g, xr, yl, r, U8G_DRAW_LOWER_RIGHT);
+  oled_draw_disc(oled, xl, yu, r, OLED_DRAW_UPPER_LEFT);
+  oled_draw_disc(oled, xr, yu, r, OLED_DRAW_UPPER_RIGHT);
+  oled_draw_disc(oled, xl, yl, r, OLED_DRAW_LOWER_LEFT);
+  oled_draw_disc(oled, xr, yl, r, OLED_DRAW_LOWER_RIGHT);
 
   {
-    u8g_uint_t ww, hh;
+    uint8_t ww, hh;
 
     ww = w;
     ww -= r;
@@ -497,11 +1074,11 @@ void u8g_DrawRBox(u8g_t *u8g, u8g_uint_t x, u8g_uint_t y, u8g_uint_t w, u8g_uint
     xl++;
     yu++;
     h--;
-    u8g_draw_box(u8g, xl, y, ww, r+1);
-    u8g_draw_box(u8g, xl, yl, ww, r+1);
-    //u8g_draw_hline(u8g, xl, y+h, ww);
-    u8g_draw_box(u8g, x, yu, w, hh);
-    //u8g_draw_vline(u8g, x+w, yu, hh);
+    oled_draw_box(oled, xl, y, ww, r+1);
+    oled_draw_box(oled, xl, yl, ww, r+1);
+    //oled_draw_hline(oled, xl, y+h, ww);
+    oled_draw_box(oled, x, yu, w, hh);
+    //oled_draw_vline(oled, x+w, yu, hh);
   }
 }
 
@@ -637,7 +1214,7 @@ static uint8_t pg_prepare(pg_struct *pg) {
   return 1;
 }
 
-static void pg_hline(pg_struct *pg, u8g_t *u8g) {
+static void pg_hline(pg_struct *pg, oled_t *oled) {
   pg_word_t x1, x2, y;
   x1 = pg->pge[PG_LEFT].current_x;
   x2 = pg->pge[PG_RIGHT].current_x;
@@ -645,29 +1222,29 @@ static void pg_hline(pg_struct *pg, u8g_t *u8g) {
   
   if ( y < 0 )
     return;
-  if ( y >= u8g_GetHeight(u8g) )
+  if ( y >= oled_GetHeight(oled) )
     return;
   if ( x1 < x2 ) {
     if ( x2 < 0 )
       return;
-    if ( x1 >= u8g_GetWidth(u8g) )
+    if ( x1 >= oled_GetWidth(oled) )
       return;
     if ( x1 < 0 )
       x1 = 0;
-    if ( x2 >= u8g_GetWidth(u8g) )
-      x2 = u8g_GetWidth(u8g);
-    u8g_DrawHLine(u8g, x1, y, x2 - x1);
+    if ( x2 >= oled_GetWidth(oled) )
+      x2 = oled_GetWidth(oled);
+    oled_DrawHLine(oled, x1, y, x2 - x1);
   }
   else {
     if ( x1 < 0 )
       return;
-    if ( x2 >= u8g_GetWidth(u8g) )
+    if ( x2 >= oled_GetWidth(oled) )
       return;
     if ( x2 < 0 )
       x1 = 0;
-    if ( x1 >= u8g_GetWidth(u8g) )
-      x1 = u8g_GetWidth(u8g);
-    u8g_DrawHLine(u8g, x2, y, x1 - x2);
+    if ( x1 >= oled_GetWidth(oled) )
+      x1 = oled_GetWidth(oled);
+    oled_DrawHLine(oled, x2, y, x1 - x2);
   }
 }
 
@@ -690,7 +1267,7 @@ static void pg_line_init(pg_struct * pg, uint8_t pge_index) {
   pge_Init(pge, x1, y1, x2, y2);
 }
 
-static void pg_exec(pg_struct *pg, u8g_t *u8g) {
+static void pg_exec(pg_struct *pg, oled_t *oled) {
   pg_word_t i = pg->total_scan_line_cnt;
 
   /* first line is skipped if the min y line is not flat */
@@ -703,7 +1280,7 @@ static void pg_exec(pg_struct *pg, u8g_t *u8g) {
   }
 
   do {
-    pg_hline(pg, u8g);
+    pg_hline(pg, oled);
     while ( pge_Next(&(pg->pge[PG_LEFT])) == 0 ) {
       pg_line_init(pg, PG_LEFT);
     }
@@ -721,7 +1298,7 @@ void pg_ClearPolygonXY(pg_struct *pg) {
   pg->cnt = 0;
 }
 
-void pg_AddPolygonXY(pg_struct *pg, u8g_t *u8g, int16_t x, int16_t y) {
+void pg_AddPolygonXY(pg_struct *pg, oled_t *oled, int16_t x, int16_t y) {
   if ( pg->cnt < PG_MAX_POINTS ) {
     pg->list[pg->cnt].x = x;
     pg->list[pg->cnt].y = y;
@@ -729,32 +1306,32 @@ void pg_AddPolygonXY(pg_struct *pg, u8g_t *u8g, int16_t x, int16_t y) {
   }
 }
 
-void pg_DrawPolygon(pg_struct *pg, u8g_t *u8g) {
+void pg_DrawPolygon(pg_struct *pg, oled_t *oled) {
   if ( pg_prepare(pg) == 0 )
     return;
-  pg_exec(pg, u8g);
+  pg_exec(pg, oled);
 }
 
-pg_struct u8g_pg;
+pg_struct oled_pg;
 
-void u8g_ClearPolygonXY(void) {
-  pg_ClearPolygonXY(&u8g_pg);
+void oled_ClearPolygonXY(void) {
+  pg_ClearPolygonXY(&oled_pg);
 }
 
-void u8g_AddPolygonXY(u8g_t *u8g, int16_t x, int16_t y) {
-  pg_AddPolygonXY(&u8g_pg, u8g, x, y);
+void oled_AddPolygonXY(oled_t *oled, int16_t x, int16_t y) {
+  pg_AddPolygonXY(&oled_pg, oled, x, y);
 }
 
-void u8g_DrawPolygon(u8g_t *u8g) {
-  pg_DrawPolygon(&u8g_pg, u8g);
+void oled_DrawPolygon(oled_t *oled) {
+  pg_DrawPolygon(&oled_pg, oled);
 }
 
-void u8g_DrawTriangle(u8g_t *u8g, int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2) {
-  u8g_ClearPolygonXY();
-  u8g_AddPolygonXY(u8g, x0, y0);
-  u8g_AddPolygonXY(u8g, x1, y1);
-  u8g_AddPolygonXY(u8g, x2, y2);
-  u8g_DrawPolygon(u8g);
+void oled_DrawTriangle(oled_t *oled, int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2) {
+  oled_ClearPolygonXY();
+  oled_AddPolygonXY(oled, x0, y0);
+  oled_AddPolygonXY(oled, x1, y1);
+  oled_AddPolygonXY(oled, x2, y2);
+  oled_DrawPolygon(oled);
 }
 
 

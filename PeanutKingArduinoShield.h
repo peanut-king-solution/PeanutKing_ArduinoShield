@@ -157,6 +157,7 @@ class colorSensor {
 class Button {
  public:
   Button() {
+    pinMode(pin, INPUT);
   }
 
   bool get(uint8_t i) {
