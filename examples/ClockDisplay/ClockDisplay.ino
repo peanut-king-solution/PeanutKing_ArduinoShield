@@ -29,7 +29,7 @@
  */
 #include <Wire.h>
 #include <TimerOne.h>
-#include "sevenSegment.h"
+#include "SevenSegment.h"
 #define ON 1
 #define OFF 0
 
@@ -43,7 +43,7 @@ unsigned char hour = 12;
 
 #define CLK 21 //8//pins definitions for TM1637 and can be changed to other ports
 #define DIO 20 //9
-sevenSegment tm1637(CLK,DIO);
+SevenSegment tm1637(CLK,DIO);
 
 void setup() {
 //  Wire.begin();

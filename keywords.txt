@@ -1,19 +1,24 @@
-  
+	
 #######################################
-# Syntax Coloring Map For 
+# PeanutKingArduinoShield
 #######################################
 
 #######################################
 # Datatypes (KEYWORD1)
 #######################################
-Cmd_SetData	KEYWORD1
-Cmd_SetAddr	KEYWORD1
+
+SevenSegment	KEYWORD1
+LedMatrix		KEYWORD1
+OLED				KEYWORD1
+Button			KEYWORD1
+Compass			KEYWORD1
+Ultrasonic	KEYWORD1
+colorSensor	KEYWORD1
+
+Cmd_SetData		KEYWORD1
+Cmd_SetAddr		KEYWORD1
 Cmd_DispCtrl	KEYWORD1
-_PointFlag	KEYWORD1
-
-sevenSegment
-ledMatrix	KEYWORD1
-
+_PointFlag		KEYWORD1
 
 #######################################
 # Methods and Functions (KEYWORD2)
@@ -45,5 +50,14 @@ setDigit	KEYWORD2
 setChar		KEYWORD2
 
 #######################################
+# Structures	KEYWORD3
+#######################################	
+
+
+#######################################
 # Constants (LITERAL1)
 #######################################
+
+
+
+

@@ -1,5 +1,5 @@
 //We always have to include the library
-#include "ledMatrix.h"
+#include "LedMatrix.h"
 
 /*
  Now we need a LedControl to work with.
@@ -9,7 +9,7 @@
  pin 10 is connected to LOAD 
  We have only a single MAX72XX.
  */
-ledMatrix lc=ledMatrix(3,5,4,1);
+LedMatrix lc=LedMatrix(3,5,4,1);
 
 /* we always wait a bit between updates of the display */
 unsigned long delaytime=500;
