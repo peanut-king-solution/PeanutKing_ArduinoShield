@@ -49,20 +49,16 @@ static uint8_t u8g_i2c_opt;		/* U8G_I2C_OPT_NO_ACK, SAM: U8G_I2C_OPT_DEV_1 */
 */
 static uint8_t u8g_i2c_err_pos;
 
-
-void u8g_i2c_clear_error(void)
-{
+void u8g_i2c_clear_error(void) {
   u8g_i2c_err_code = U8G_I2C_ERR_NONE;
   u8g_i2c_err_pos = 0;
 }
 
-uint8_t  u8g_i2c_get_error(void)
-{
+uint8_t  u8g_i2c_get_error(void) {
   return u8g_i2c_err_code;
 }
 
-uint8_t u8g_i2c_get_err_pos(void)
-{
+uint8_t u8g_i2c_get_err_pos(void) {
   return u8g_i2c_err_pos;
 }
 
@@ -70,8 +66,7 @@ uint8_t u8g_i2c_get_err_pos(void)
 #if defined(__AVR_XMEGA__)
 #elif defined(__AVR__)
 
-static void u8g_i2c_set_error(uint8_t code, uint8_t pos)
-{
+static void u8g_i2c_set_error(uint8_t code, uint8_t pos) {
   if ( u8g_i2c_err_code > 0 )
     return;
   u8g_i2c_err_code |= code;

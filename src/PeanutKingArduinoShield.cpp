@@ -10,21 +10,27 @@
 
 #include "PeanutKingArduinoShield.h"
 
+void i2cRxCallback(const uint8_t _status) {
 
-void I2CSend(int8_t addr, uint8_t *data, uint8_t length) {
-  Wire.beginTransmission(addr);
-  Wire.write(data, length);
-  Wire.endTransmission();
 }
 
-void I2CRead(int8_t addr, uint8_t *data, uint8_t length) {
-  uint8_t i=0;
-  Wire.requestFrom((int)addr, (int)length);
-  while (Wire.available()) {
-    data[i++] = Wire.read();
-  }
+void I2CSend(CI2C::Handle handle, uint8_t *data, uint8_t length) {
+  uint8_t _status = nI2C->Write(handle, data, length);
 }
 
+void I2CRead(CI2C::Handle handle, uint8_t *data, uint8_t length) {
+  uint8_t _status = nI2C->Read(handle, data, length, i2cRxCallback);
+  // uint8_t i=0;
+  // Wire.requestFrom((int)addr, (int)length);
+  // while (Wire.available()) {
+  //   data[i++] = Wire.read();
+  // }
+}
+
+void _statusError(const uint8_t _status) {
+  Serial.print("Communication _status #: ");
+  Serial.println(_status);
+}
 
 color_t PeanutKingArduinoShield::readcolor(uint8_t index) {
   
