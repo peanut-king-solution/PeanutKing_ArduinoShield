@@ -32,9 +32,9 @@
   ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.  
 
 
-  void u8g_Delay(uint16_t val)		Delay by "val" milliseconds
-  void u8g_MicroDelay(void)		Delay be one microsecond
-  void u8g_10MicroDelay(void)	Delay by 10 microseconds
+  void u8g_Delay(uint16_t val)    Delay by "val" milliseconds
+  void u8g_MicroDelay(void)    Delay be one microsecond
+  void u8g_10MicroDelay(void)  Delay by 10 microseconds
 
   
 */
@@ -61,7 +61,7 @@
 #    define USE_AVR_DELAY
 #  elif defined(__PIC32MX)
 #    define USE_PIC32_DELAY
-#  elif defined(__arm__)		/* Arduino Due & Teensy */
+#  elif defined(__arm__)    /* Arduino Due & Teensy */
 #    define USE_ARDUINO_DELAY
 #  else
 #    define USE_ARDUINO_DELAY
@@ -154,17 +154,17 @@ void u8g_10MicroDelay(void)
 void u8g_Delay(uint16_t val)
 {
 #if defined(__arm__)
-	delayMicroseconds((uint32_t)val*(uint32_t)1000);
+  delayMicroseconds((uint32_t)val*(uint32_t)1000);
 #else
-	delay(val);
+  delay(val);
 #endif
 }
 void u8g_MicroDelay(void)
 {
-	delayMicroseconds(1);
+  delayMicroseconds(1);
 }
 void u8g_10MicroDelay(void)
 {
-	delayMicroseconds(10);
+  delayMicroseconds(10);
 }
 #endif

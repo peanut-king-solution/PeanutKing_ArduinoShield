@@ -35,8 +35,8 @@
   
   Addition to the U8G Library as of 02/29/12
   Adapted from Bresenham's Algorithm and the following websites:
-	http://free.pages.at/easyfilter/bresenham.html
-	http://homepage.smc.edu/kennedy_john/belipse.pdf
+  http://free.pages.at/easyfilter/bresenham.html
+  http://homepage.smc.edu/kennedy_john/belipse.pdf
   
 */
 

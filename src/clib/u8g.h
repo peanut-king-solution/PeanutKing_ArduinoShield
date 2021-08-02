@@ -144,11 +144,11 @@ typedef uint8_t u8g_fntpgm_uint8_t;
 /* interrupt safe code */
 #if defined(U8G_INTERRUPT_SAFE)
 #  if defined(__AVR__)
-extern uint8_t global_SREG_backup;	/* u8g_state.c */
-#    define U8G_ATOMIC_START()		do { global_SREG_backup = SREG; cli(); } while(0)
-#    define U8G_ATOMIC_END()			SREG = global_SREG_backup
-#    define U8G_ATOMIC_OR(ptr, val) 	do { uint8_t tmpSREG = SREG; cli(); (*(ptr) |= (val)); SREG = tmpSREG; } while(0)
-#    define U8G_ATOMIC_AND(ptr, val) 	do { uint8_t tmpSREG = SREG; cli(); (*(ptr) &= (val)); SREG = tmpSREG; } while(0)
+extern uint8_t global_SREG_backup;  /* u8g_state.c */
+#    define U8G_ATOMIC_START()    do { global_SREG_backup = SREG; cli(); } while(0)
+#    define U8G_ATOMIC_END()      SREG = global_SREG_backup
+#    define U8G_ATOMIC_OR(ptr, val)   do { uint8_t tmpSREG = SREG; cli(); (*(ptr) |= (val)); SREG = tmpSREG; } while(0)
+#    define U8G_ATOMIC_AND(ptr, val)   do { uint8_t tmpSREG = SREG; cli(); (*(ptr) &= (val)); SREG = tmpSREG; } while(0)
 #  else
 #    define U8G_ATOMIC_OR(ptr, val) (*(ptr) |= (val))
 #    define U8G_ATOMIC_AND(ptr, val) (*(ptr) &= (val))
@@ -245,9 +245,9 @@ struct _u8g_dev_arg_pixel_t {
   u8g_uint_t x, y;              /* will be modified */
   uint8_t pixel;                  /* will be modified, pixel sequence or transparency value */
   uint8_t dir;
-  uint8_t color;			/* color or index value, red value for true color mode */
-  uint8_t hi_color;		/* high byte for 64K color mode, low byte is in "color", green value for true color mode */
-  uint8_t blue;			/* blue value in true color mode */
+  uint8_t color;      /* color or index value, red value for true color mode */
+  uint8_t hi_color;    /* high byte for 64K color mode, low byte is in "color", green value for true color mode */
+  uint8_t blue;      /* blue value in true color mode */
 };
 /* typedef struct _u8g_dev_arg_pixel_t u8g_dev_arg_pixel_t; */ /* forward decl */
 
@@ -265,68 +265,68 @@ struct _u8g_box_t {
 /* typedef struct _u8g_box_t u8g_box_t; */ /* forward decl */
 
 struct _u8g_dev_arg_irgb_t {
-  u8g_uint_t idx, r, g, b;		/* index with rgb value */
+  u8g_uint_t idx, r, g, b;    /* index with rgb value */
 };
 /* typedef struct _u8g_dev_arg_irgb_t u8g_dev_arg_irgb_t; */ /* forward decl */
 
 
 
 #define U8G_DEV_MSG_INIT                10
-#define U8G_DEV_MSG_STOP                  11
+#define U8G_DEV_MSG_STOP                11
 
 /* arg: pointer to uint8_t, contranst value between 0 and 255 */
 #define U8G_DEV_MSG_CONTRAST            15
 
 #define U8G_DEV_MSG_SLEEP_ON            16
-#define U8G_DEV_MSG_SLEEP_OFF            17
+#define U8G_DEV_MSG_SLEEP_OFF           17
 
-#define U8G_DEV_MSG_PAGE_FIRST                  20
-#define U8G_DEV_MSG_PAGE_NEXT                    21
+#define U8G_DEV_MSG_PAGE_FIRST          20
+#define U8G_DEV_MSG_PAGE_NEXT           21
 
 /* arg: u8g_dev_arg_bbx_t * */
 
 
 /* arg: u8g_box_t *, fill structure with current page properties */
-#define U8G_DEV_MSG_GET_PAGE_BOX 23
+#define U8G_DEV_MSG_GET_PAGE_BOX        23
 
 /*
-#define U8G_DEV_MSG_PRIMITIVE_START             30
-#define U8G_DEV_MSG_PRIMITIVE_END               31
+#define U8G_DEV_MSG_PRIMITIVE_START     30
+#define U8G_DEV_MSG_PRIMITIVE_END       31
 */
 
 /* arg: u8g_dev_arg_pixel_t * */
-#define U8G_DEV_MSG_SET_TPIXEL				44
-#define U8G_DEV_MSG_SET_4TPIXEL			45
+#define U8G_DEV_MSG_SET_TPIXEL          44
+#define U8G_DEV_MSG_SET_4TPIXEL         45
 
-#define U8G_DEV_MSG_SET_PIXEL                           50
-#define U8G_DEV_MSG_SET_8PIXEL                          59
+#define U8G_DEV_MSG_SET_PIXEL           50
+#define U8G_DEV_MSG_SET_8PIXEL          59
 
-#define U8G_DEV_MSG_SET_COLOR_ENTRY                60
+#define U8G_DEV_MSG_SET_COLOR_ENTRY     60
 
-#define U8G_DEV_MSG_SET_XY_CB                           61
+#define U8G_DEV_MSG_SET_XY_CB           61
 
-#define U8G_DEV_MSG_GET_WIDTH                           70
-#define U8G_DEV_MSG_GET_HEIGHT                           71
-#define U8G_DEV_MSG_GET_MODE                  72
+#define U8G_DEV_MSG_GET_WIDTH           70
+#define U8G_DEV_MSG_GET_HEIGHT          71
+#define U8G_DEV_MSG_GET_MODE            72
 
 /*===============================================================*/
 /* device modes */
 #define U8G_MODE(is_index_mode, is_color, bits_per_pixel) (((is_index_mode)<<6) | ((is_color)<<5)|(bits_per_pixel))
 
-#define U8G_MODE_UNKNOWN     0
-#define U8G_MODE_BW     U8G_MODE(0, 0, 1)
-#define U8G_MODE_GRAY2BIT     U8G_MODE(0, 0, 2)
-#define U8G_MODE_R3G3B2  U8G_MODE(0, 1, 8)
-#define U8G_MODE_INDEX  U8G_MODE(1, 1, 8)
+#define U8G_MODE_UNKNOWN    0
+#define U8G_MODE_BW         U8G_MODE(0, 0, 1)
+#define U8G_MODE_GRAY2BIT   U8G_MODE(0, 0, 2)
+#define U8G_MODE_R3G3B2     U8G_MODE(0, 1, 8)
+#define U8G_MODE_INDEX      U8G_MODE(1, 1, 8)
 /* hicolor is R5G6B5 */
-#define U8G_MODE_HICOLOR  U8G_MODE(0, 1, 16)
+#define U8G_MODE_HICOLOR    U8G_MODE(0, 1, 16)
 /* truecolor  */
 #define U8G_MODE_TRUECOLOR  U8G_MODE(0, 1, 24)
 
 
-#define U8G_MODE_GET_BITS_PER_PIXEL(mode) ((mode)&31)
-#define U8G_MODE_IS_COLOR(mode) (((mode)&32)==0?0:1)
-#define U8G_MODE_IS_INDEX_MODE(mode) (((mode)&64)==0?0:1)
+#define U8G_MODE_GET_BITS_PER_PIXEL(mode)   ((mode)&31)
+#define U8G_MODE_IS_COLOR(mode)             (((mode)&32)==0?0:1)
+#define U8G_MODE_IS_INDEX_MODE(mode)        (((mode)&64)==0?0:1)
 
 
 /*===============================================================*/
@@ -336,26 +336,22 @@ struct _u8g_dev_arg_irgb_t {
 /* #define U8G_HW_SPI_2X 1 */
 
 /* com messages */
-
 #define U8G_COM_MSG_STOP        0
 #define U8G_COM_MSG_INIT        1
-
-#define U8G_COM_MSG_ADDRESS 2
+#define U8G_COM_MSG_ADDRESS     2
 
 /* CHIP_SELECT argument: number of the chip which needs to be activated, so this is more like high active */
 #define U8G_COM_MSG_CHIP_SELECT 3
-
-#define U8G_COM_MSG_RESET 4
-
-#define U8G_COM_MSG_WRITE_BYTE 5
-#define U8G_COM_MSG_WRITE_SEQ 6
+#define U8G_COM_MSG_RESET       4
+#define U8G_COM_MSG_WRITE_BYTE  5
+#define U8G_COM_MSG_WRITE_SEQ   6
 #define U8G_COM_MSG_WRITE_SEQ_P 7
 
 
 /* com driver */
-uint8_t u8g_com_std_sw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr);	/* requires U8G_WITH_PINLIST */
+uint8_t u8g_com_std_sw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr);  /* requires U8G_WITH_PINLIST */
 
-uint8_t u8g_com_arduino_ssd_i2c_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr);		/* u8g_com_arduino_ssd_i2c.c */
+uint8_t u8g_com_arduino_ssd_i2c_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr);    /* u8g_com_arduino_ssd_i2c.c */
 uint8_t u8g_com_arduino_uc_i2c_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr);
 
 
@@ -423,10 +419,10 @@ defined(__18CXX) || defined(__PIC32MX)
 /*===============================================================*/
 /* com api */
 
-#define U8G_SPI_CLK_CYCLE_50NS 1
+#define U8G_SPI_CLK_CYCLE_50NS  1
 #define U8G_SPI_CLK_CYCLE_300NS 2
 #define U8G_SPI_CLK_CYCLE_400NS 3
-#define U8G_SPI_CLK_CYCLE_NONE 255
+#define U8G_SPI_CLK_CYCLE_NONE  255
 
 uint8_t u8g_InitCom(u8g_t *u8g, u8g_dev_t *dev, uint8_t clk_cycle_time);
 void u8g_StopCom(u8g_t *u8g, u8g_dev_t *dev);
@@ -479,8 +475,7 @@ void u8g_SetPILevel(u8g_t *u8g, uint8_t pi, uint8_t level);
 
 /*===============================================================*/
 /* page */
-struct _u8g_page_t
-{
+struct _u8g_page_t {
   u8g_uint_t page_height;
   u8g_uint_t total_height;
   u8g_uint_t page_y0;
@@ -496,10 +491,9 @@ uint8_t u8g_page_Next(u8g_page_t *p) U8G_NOINLINE;                              
 /*===============================================================*/
 /* page buffer (pb) */
 
-struct _u8g_pb_t
-{
+struct _u8g_pb_t {
   u8g_page_t p;
-  u8g_uint_t width;		/* pixel width */
+  u8g_uint_t width;    /* pixel width */
   void *buf;
 };
 typedef struct _u8g_pb_t u8g_pb_t;
@@ -652,7 +646,7 @@ struct _u8g_t
   
   u8g_state_cb state_cb;
   
-  u8g_box_t current_page;		/* current box of the visible page */
+  u8g_box_t current_page;    /* current box of the visible page */
 
 };
 
@@ -669,17 +663,17 @@ uint8_t u8g_SetContrastLL(u8g_t *u8g, u8g_dev_t *dev, uint8_t contrast);
 void u8g_DrawPixelLL(u8g_t *u8g, u8g_dev_t *dev, u8g_uint_t x, u8g_uint_t y);
 void u8g_Draw8PixelLL(u8g_t *u8g, u8g_dev_t *dev, u8g_uint_t x, u8g_uint_t y, uint8_t dir, uint8_t pixel);
 void u8g_Draw4TPixelLL(u8g_t *u8g, u8g_dev_t *dev, u8g_uint_t x, u8g_uint_t y, uint8_t dir, uint8_t pixel);
-uint8_t u8g_IsBBXIntersectionLL(u8g_t *u8g, u8g_dev_t *dev, u8g_uint_t x, u8g_uint_t y, u8g_uint_t w, u8g_uint_t h);	/* obsolete */
+uint8_t u8g_IsBBXIntersectionLL(u8g_t *u8g, u8g_dev_t *dev, u8g_uint_t x, u8g_uint_t y, u8g_uint_t w, u8g_uint_t h);  /* obsolete */
 u8g_uint_t u8g_GetWidthLL(u8g_t *u8g, u8g_dev_t *dev);
 u8g_uint_t u8g_GetHeightLL(u8g_t *u8g, u8g_dev_t *dev);
 
 void u8g_UpdateDimension(u8g_t *u8g);
-uint8_t u8g_Begin(u8g_t *u8g);				/* reset device, put it into default state and call u8g_UpdateDimension() */
+uint8_t u8g_Begin(u8g_t *u8g);        /* reset device, put it into default state and call u8g_UpdateDimension() */
 uint8_t u8g_Init(u8g_t *u8g, u8g_dev_t *dev);   /* only usefull if the device only as hardcoded ports */
-uint8_t u8g_InitComFn(u8g_t *u8g, u8g_dev_t *dev, u8g_com_fnptr com_fn);	/* Init procedure for anything which is not Arduino or AVR (e.g. ARM, but not Due, which is Arduino) */
+uint8_t u8g_InitComFn(u8g_t *u8g, u8g_dev_t *dev, u8g_com_fnptr com_fn);  /* Init procedure for anything which is not Arduino or AVR (e.g. ARM, but not Due, which is Arduino) */
 
 #if defined(U8G_WITH_PINLIST)
-uint8_t u8g_InitI2C(u8g_t *u8g, u8g_dev_t *dev, uint8_t options);	/* use U8G_I2C_OPT_NONE as options */
+uint8_t u8g_InitI2C(u8g_t *u8g, u8g_dev_t *dev, uint8_t options);  /* use U8G_I2C_OPT_NONE as options */
 #endif
 
 void u8g_FirstPage(u8g_t *u8g);
@@ -907,11 +901,11 @@ struct pg_point_struct
   pg_word_t y;
 };
 
-typedef struct _pg_struct pg_struct;	/* forward declaration */
+typedef struct _pg_struct pg_struct;  /* forward declaration */
 
 struct pg_edge_struct
 {
-  pg_word_t x_direction;	/* 1, if x2 is greater than x1, -1 otherwise */
+  pg_word_t x_direction;  /* 1, if x2 is greater than x1, -1 otherwise */
   pg_word_t height;
   pg_word_t current_x_offset;
   pg_word_t error_offset;
@@ -942,7 +936,7 @@ struct _pg_struct
   uint8_t cnt;
   uint8_t is_min_y_not_flat;
   pg_word_t total_scan_line_cnt;
-  struct pg_edge_struct pge[2];	/* left and right line draw structures */
+  struct pg_edge_struct pge[2];  /* left and right line draw structures */
 };
 
 void pg_ClearPolygonXY(pg_struct *pg);
@@ -982,7 +976,7 @@ void st_Step(uint8_t player_pos, uint8_t is_auto_fire, uint8_t is_fire);
 void u8g_i2c_clear_error(void) U8G_NOINLINE;
 uint8_t  u8g_i2c_get_error(void) U8G_NOINLINE;
 uint8_t u8g_i2c_get_err_pos(void) U8G_NOINLINE;
-void u8g_i2c_init(uint8_t options) U8G_NOINLINE;		/* use U8G_I2C_OPT_NONE as options */
+void u8g_i2c_init(uint8_t options) U8G_NOINLINE;    /* use U8G_I2C_OPT_NONE as options */
 uint8_t u8g_i2c_wait(uint8_t mask, uint8_t pos) U8G_NOINLINE;
 uint8_t u8g_i2c_start(uint8_t sla) U8G_NOINLINE;
 uint8_t u8g_i2c_send_byte(uint8_t data) U8G_NOINLINE;

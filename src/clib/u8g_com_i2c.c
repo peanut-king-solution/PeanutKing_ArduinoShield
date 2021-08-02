@@ -41,7 +41,7 @@
 //#define U8G_I2C_WITH_NO_ACK
 
 static uint8_t u8g_i2c_err_code;
-static uint8_t u8g_i2c_opt;		/* U8G_I2C_OPT_NO_ACK, SAM: U8G_I2C_OPT_DEV_1 */
+static uint8_t u8g_i2c_opt;    /* U8G_I2C_OPT_NO_ACK, SAM: U8G_I2C_OPT_DEV_1 */
 /*
   position values
     1: start condition
@@ -88,16 +88,16 @@ void u8g_i2c_init(uint8_t options) {
   TWSR: status register (contains preselector bits)
 
   prescalar
-    0		1
-    1		4
-    2		16
-    3		64
+    0    1
+    1    4
+    2    16
+    3    64
 
   f = F_CPU/(16+2*TWBR*prescalar)
   
   F_CPU = 16MHz
     TWBR = 152;  TWSR = 0;  --> 50KHz
-    TWBR = 72;   TWSR = 0;	--> 100KHz
+    TWBR = 72;   TWSR = 0;  --> 100KHz
     TWBR = 12;   TWSR = 0;  --> 400KHz
   F_CPU/(2*100000)-8  --> calculate TWBR value for 100KHz
 */
@@ -113,11 +113,11 @@ void u8g_i2c_init(uint8_t options) {
 }
 
 uint8_t u8g_i2c_wait(uint8_t mask, uint8_t pos) {
-  volatile uint16_t cnt = 2000;	/* timout value should be > 280 for 50KHz Bus and 16 Mhz CPU, however the start condition might need longer */
+  volatile uint16_t cnt = 2000;  /* timout value should be > 280 for 50KHz Bus and 16 Mhz CPU, however the start condition might need longer */
   while( !(TWCR & mask) ) {
     if ( cnt == 0 ) {
-      if ( u8g_i2c_opt & U8G_I2C_OPT_NO_ACK )	{
-        return 1;	/* all ok */
+      if ( u8g_i2c_opt & U8G_I2C_OPT_NO_ACK )  {
+        return 1;  /* all ok */
       }
       else {
         u8g_i2c_set_error(U8G_I2C_ERR_TIMEOUT, pos);
@@ -126,7 +126,7 @@ uint8_t u8g_i2c_wait(uint8_t mask, uint8_t pos) {
     }
     cnt--;
   }
-  return 1;	/* all ok */
+  return 1;  /* all ok */
 }
 
 /* sla includes all 8 bits (with r/w bit), assums master transmit */
