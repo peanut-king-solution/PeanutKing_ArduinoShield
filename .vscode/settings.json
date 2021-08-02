@@ -1,5 +1,6 @@
 {
-  "files.associations": {
-    "u8g.h": "c"
-  }
+    "C_Cpp.errorSquiggles": "Disabled",
+    "editor.tabSize": 2,
+    "editor.detectIndentation": false,
+    // "workbench.colorTheme": "Snazzy Operator",
 }

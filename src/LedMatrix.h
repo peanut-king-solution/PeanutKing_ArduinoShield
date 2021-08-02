@@ -1,5 +1,5 @@
 /* LedMatrix.cpp
- * digit 7-Segment display library4
+ * digit 7-Segment display library
  * Copyright (c) 2021 PeanutKing Solution
  * Author     : Jack Kwok
  * Create Time: 7 Jul 2021
@@ -12,12 +12,7 @@
 #define LEDMATRIX_H
 
 #include <avr/pgmspace.h>
-
-#if (ARDUINO >= 100)
 #include <Arduino.h>
-#else
-#include <WProgram.h>
-#endif
 
 //the opcodes for the MAX7221 and MAX7219
 #define OP_NOOP       0
@@ -48,7 +43,7 @@ class LedMatrix {
   void spiTransfer(int addr, byte opcode, byte data);
 
  public:
-  LedMatrix(int dataPin, int clkPin, int csPin, int numDevices=1);
+  LedMatrix(int dataPin, int csPin, int clkPin, int numDevices=1);
 
   // Returns the number of devices on this LedMatrix
   int getDeviceCount(void) {
@@ -70,21 +65,10 @@ class LedMatrix {
   // Switch all Leds on the display off
   void clearDisplay(int addr);
 
-  /* Set the status of a single Led.
-   * row  the row of the Led (0..7)
-   * col  the column of the Led (0..7)
-   */
+  /* Set the status of a single Led. row (0..7) col (0..7) */
   void setLed(int addr, int row, int col, boolean state);
-
-  /* row  row which is to be set (0..7)
-   * each bit set to 1 will light up the corresponding Led.
-   */
-  void setRow(int addr, int row, byte value);
-
-  /* col  column which is to be set (0..7)
-   * each bit set to 1 will light up the corresponding Led.
-   */
-  void setColumn(int addr, int col, byte value);
+  void setRow(int addr, int row, byte value);     // row (0..7)
+  void setColumn(int addr, int col, byte value);  // col (0..7)
 };
 
 

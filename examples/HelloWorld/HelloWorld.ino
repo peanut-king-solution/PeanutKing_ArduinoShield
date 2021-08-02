@@ -18,17 +18,16 @@ SevenSegment tm1637(8,9);     // (CLK, DIO)
 
 OLED_SSD1306_128X64 u8g(U8G_I2C_OPT_NONE|U8G_I2C_OPT_DEV_0);  // I2C / TWI 
 
-LedMatrix lc=LedMatrix(3,5,4,1);
+LedMatrix lc=LedMatrix(3,5,4,1);    
 
 PeanutKingArduinoShield robot;
 
-Button      button();
-Compass     compass();
-Ultrasonic  ultrasonic(6,7);
-colorSensor rgbcolor();
-Multiplexer multiplexer();
-
-
+Button button = Button();
+Compass compass = Compass();
+Ultrasonic ultrasonic = Ultrasonic(6,7);
+colorSensor rgbcolor = colorSensor();
+Multiplexer multiplexer = Multiplexer();
+Motor motor = Motor();
 
 
 void setup() {
@@ -49,6 +48,8 @@ void setup() {
   lc.setIntensity(0,8);
   /* and clear the display */
   lc.clearDisplay(0);
+
+  multiplexer.select(6);
   
   
   // flip screen, if required
@@ -71,27 +72,35 @@ void setup() {
 }
 
 void loop(void) {
-  if(Update == ON) {
-    TimeUpdate();
-    tm1637.display(TimeDisp);
-    writeArduinoOnMatrix();
-  }
+//  if(Update == ON) {
+//    TimeUpdate();
+//    tm1637.display(TimeDisp);
+//    writeArduinoOnMatrix();
+//  }
+//  
+//  multiplexer.select(6);
+//  // picture loop
+//  u8g.firstPage();  
+//  do {
+//    draw();
+//  } while( u8g.nextPage() );
   
-  // picture loop
-  u8g.firstPage();  
-  do {
-    draw();
-  } while( u8g.nextPage() );
-  
+  multiplexer.select(8);
+  uint16_t c = compass.get();
+  Serial.print("  Compass: "); Serial.print(c);
+  Serial.println();
+  delay(500);
+//  motor.set(100, 100);      // set motor speed (left right)
+//  buttonTest();
 }
 
 
 
 void buttonTest(void) {
-  Serial.print( analogRead(A5) );
-  Serial.print("Button A: ");   Serial.print(robot.button.get(0));
-  Serial.print("  Button B: ");   Serial.print(robot.button.get(1));
-  Serial.print("  Button C: ");   Serial.print(robot.button.get(2));
+  Serial.print( analogRead(A3) );
+  Serial.print("  Button A: "); Serial.print(robot.button.get(0));
+  Serial.print("  Button B: "); Serial.print(robot.button.get(1));
+  Serial.print("  Button C: "); Serial.print(robot.button.get(2));
   Serial.print(" ");
   Serial.println();
 }
@@ -105,7 +114,7 @@ void draw(void) {
   // graphic commands to redraw the complete screen should be placed here  
   u8g.setFont(u8g_font_unifont);
   //u8g.setFont(u8g_font_osb21);
-  u8g.drawStr( 0, 22, "2");
+  u8g.drawStr( 0, 22, "ujyftyuk");
 }
 
 

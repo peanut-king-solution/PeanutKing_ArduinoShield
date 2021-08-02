@@ -31,10 +31,8 @@
 
 #define TCAADDR 0x70
 
-#define SENSOR 1
-
-#define PIN_BUTTON 1
-#define PIN_MOTOR 1
+#define PIN_BUTTON  1
+#define PIN_MOTOR   1
 
 #define ADDR_MONITOR 1
 #define ADDR_COMPASS 1
@@ -80,26 +78,22 @@ void I2CRead(int8_t addr, uint8_t *data, uint8_t length);
 
 
 
-
-
-
-
 // Multiplexer -----------------------------------------------------
 class Multiplexer {
  public:
-
   Multiplexer() {
+    pinMode(2, OUTPUT);
+    digitalWrite(2, HIGH);
   }
-
   void select(uint8_t i) {
-    if (i > 7) return;
+    if (i > 8) return;
     uint8_t  message[1];
-    message[0]=(1 << i);
-   
+    message[0] = (1 << idx[i]);
     I2CSend(TCAADDR, message, 1);
   }
+  // B1-B8: idx[1] - idx[8]
+  const uint8_t idx[9] = {0, 7, 6, 5, 4, 0, 1, 2, 3};
 };
-
 
 //color sensor
 class colorSensor {
@@ -156,33 +150,40 @@ class colorSensor {
 
 
 
-
 // Button -----------------------------------------------------
 class Button {
  public:
   Button() {
     pinMode(pin, INPUT);
   }
+  Button(uint8_t pin) : pin(pin) {
+    pinMode(pin, INPUT);
+  }
 
   bool get(uint8_t i) {
     uint8_t button;
-    uint16_t value;
-
-    value = analogRead(pin);
-
-    if      (value > 550) button  = 0;
-    else if (value > 330) button  = 1;
-    else if (value > 230) button  = 2;
-    else if (value > 180) button  = 3;
-    else if (value > 140) button  = 4;
-    else if (value > 120) button  = 5;
-    else if (value > 105) button  = 6;
+    uint16_t value = analogRead(pin);
+    if      (value > 700) button  = 0;
+    else if (value > 400) button  = 1;
+    else if (value > 300) button  = 2;
+    else if (value > 220) button  = 3;
+    else if (value > 175) button  = 4;
+    else if (value > 150) button  = 5;
+    else if (value > 130) button  = 6;
     else                  button  = 7;
 
     return (button&(1<<i));
   }
 
-  byte pin = A5;
+    // if      (value > 550) button  = 0;
+    // else if (value > 330) button  = 1;
+    // else if (value > 230) button  = 2;
+    // else if (value > 180) button  = 3;
+    // else if (value > 140) button  = 4;
+    // else if (value > 120) button  = 5;
+    // else if (value > 105) button  = 6;
+    // else                  button  = 7;
+  const uint8_t pin = A3;
 };
 
 
@@ -191,7 +192,7 @@ class Compass {
  public:
   Compass() {
   }
-  float get(int8_t addr = 8, int8_t cmd = 0x55) {
+  float get(int8_t addr = 8, uint8_t cmd = 0x55) {
     uint8_t i=0, received_byte[3] = {0,0,0};
     uint16_t temp=0;
     float answer = 888;
@@ -232,12 +233,50 @@ class Ultrasonic {
   const uint8_t txPin, rxPin;
 };
 
+
+class Motor {
+ public:
+  Motor() :
+  dirPin  {6, 10},
+  dir2Pin {9, 11} {
+    pinMode(dirPin[0], OUTPUT);
+    pinMode(dirPin[1], OUTPUT);
+    pinMode(dir2Pin[0], OUTPUT);
+    pinMode(dir2Pin[1], OUTPUT);
+  }
+
+  void set(int16_t left, int16_t right) {
+    int16_t speed[2] = {left, right};
+    for(uint8_t i=0; i<2; i++) {
+      if ( speed[i]>0 && speed[i]<256 ) {
+        analogWrite(dirPin[i], speed[i]);
+        digitalWrite(dir2Pin[i], LOW);
+      } else
+      if ( speed[i]<0 && speed[i]>-256 ) {
+        digitalWrite(dirPin[i], LOW);
+        analogWrite(dir2Pin[i], -speed[i]);
+      }
+      else {
+        digitalWrite(dirPin[i], LOW);
+        digitalWrite(dir2Pin[i], LOW);
+      }
+    }
+  }
+
+  const uint8_t dirPin[2], dir2Pin[2];
+};
+
+
+
+
+
+
+
+
 // PeanutKingArduinoShield -----------------------------------------------------
 class PeanutKingArduinoShield {
  public:
   PeanutKingArduinoShield() {
-    pinMode(2, OUTPUT);
-    digitalWrite(2, HIGH);
   }
   Button      button;
   Compass     compass;
