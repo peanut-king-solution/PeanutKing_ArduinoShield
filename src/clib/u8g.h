@@ -224,8 +224,6 @@ struct _u8g_dev_t
 /* device list */
 
 /* OLED 128x64 Display with SSD1306 Controller */
-extern u8g_dev_t u8g_dev_ssd1306_128x64_i2c;
-extern u8g_dev_t u8g_dev_ssd1306_adafruit_128x64_i2c;
 extern u8g_dev_t u8g_dev_ssd1306_128x64_2x_i2c;
 
 /* A2 Micro Printer */
@@ -506,7 +504,6 @@ uint8_t u8g_pb_IsXIntersection(u8g_pb_t *b, u8g_uint_t v0, u8g_uint_t v1);
 uint8_t u8g_pb_IsIntersection(u8g_pb_t *pb, u8g_dev_arg_bbx_t *bbx);
 void u8g_pb_GetPageBox(u8g_pb_t *pb, u8g_box_t *box);
 uint8_t u8g_pb_Is8PixelVisible(u8g_pb_t *b, u8g_dev_arg_pixel_t *arg_pixel);
-uint8_t u8g_pb_WriteBuffer(u8g_pb_t *b, u8g_t *u8g, u8g_dev_t *dev);
 
 /*
   note on __attribute__ ((nocommon))

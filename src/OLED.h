@@ -40,6 +40,12 @@
 
 #include <Print.h>
 #include "clib/u8g.h"
+#include "nI2C.h"
+
+#define WIDTH       128
+#define HEIGHT      64
+#define PAGE_HEIGHT 8
+
 
 uint8_t u8g_dev_rot_dummy_fn(u8g_t *u8g, u8g_dev_t*dev, uint8_t msg, void *arg);
 extern u8g_dev_t u8g_dev_rot;
@@ -231,24 +237,24 @@ class OLED : public Print {
     void setVirtualScreenDimension(u8g_uint_t width, u8g_uint_t height) { u8g_SetVirtualScreenDimension(&u8g, width, height); }
     uint8_t addToVirtualScreen(u8g_uint_t x, u8g_uint_t y, OLED &child_u8g) { return u8g_AddToVirtualScreen(&u8g, x, y, &child_u8g.u8g); }
 
+
 };
 
 
 
 class OLED_SSD1306_128X64 : public OLED {
   public:
-    OLED_SSD1306_128X64(uint8_t options = U8G_I2C_OPT_NONE) 
-      : OLED(&u8g_dev_ssd1306_128x64_i2c, options)
-      { }
-};
+    OLED_SSD1306_128X64(uint8_t options = U8G_I2C_OPT_NONE);
+    
+    static CI2C::Handle oledHandle;
 
-class OLED_SSD1306_ADAFRUIT_128X64 : public OLED {
-  public:
-    OLED_SSD1306_ADAFRUIT_128X64(uint8_t options = U8G_I2C_OPT_NONE) 
-      : OLED(&u8g_dev_ssd1306_adafruit_128x64_i2c, options)
-      { }
-};
+    static uint8_t u8g_dev_ssd1306_128x64_fn(u8g_t *u8g, u8g_dev_t *dev, uint8_t msg, void *arg);
 
+    static uint8_t u8g_dev_ssd1306_128x64_i2c_buf[WIDTH] U8G_NOCOMMON;
+    static u8g_pb_t u8g_dev_ssd1306_128x64_i2c_pb;
+    static u8g_dev_t u8g_dev_ssd1306_128x64_i2c;
+
+};
 
 class OLED_SSD1306_128X64_2X : public OLED {
   public:

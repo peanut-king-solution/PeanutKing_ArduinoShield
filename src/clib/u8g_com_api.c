@@ -41,6 +41,11 @@
 #define I2C_CMD_MODE    0x000
 #define I2C_DATA_MODE   0x040
 
+
+uint8_t u8g_com_arduino_ssd_i2c_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr) {
+  return 1;
+}
+
 uint8_t u8g_com_arduino_ssd_start_sequence(u8g_t *u8g) {
   /* are we requested to set the a0 state? */
   if ( u8g->pin_list[U8G_PI_SET_A0] == 0 )        return 1;
@@ -58,12 +63,9 @@ uint8_t u8g_com_arduino_ssd_start_sequence(u8g_t *u8g) {
   return 1;
 }
 
-uint8_t u8g_com_arduino_ssd_i2c_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr) {
-  return 1;
-}
 
 uint8_t u8g_InitCom(u8g_t *u8g, u8g_dev_t *dev, uint8_t clk_cycle_time) {
-  u8g_i2c_init(u8g->pin_list[U8G_PI_I2C_OPTION]);
+  // u8g_i2c_init(u8g->pin_list[U8G_PI_I2C_OPTION]);
   return 1;
 }
 
@@ -72,14 +74,10 @@ void u8g_StopCom(u8g_t *u8g, u8g_dev_t *dev) {
 
 /* cs contains the chip number, which should be enabled */
 void u8g_SetChipSelect(u8g_t *u8g, u8g_dev_t *dev, uint8_t cs) {
-  u8g->pin_list[U8G_PI_A0_STATE] = 0;
-  u8g->pin_list[U8G_PI_SET_A0] = 1;    /* force a0 to set again, also forces start condition */
+  u8g->pin_list[U8G_PI_A0_STATE] = 0;   // force a0 to set again
+  u8g->pin_list[U8G_PI_SET_A0] = 1;     // also forces start condition
   if ( cs == 0 ) {
-    /* disable chip, send stop condition */
-    u8g_i2c_stop();
-  }
-  else {
-    /* enable, do nothing: any byte writing will trigger the i2c start */
+    u8g_i2c_stop();                     // disable chip, send stop condition 
   }
 }
 
@@ -159,11 +157,11 @@ uint8_t u8g_WriteEscSeqP(u8g_t *u8g, u8g_dev_t *dev, const uint8_t *esc_seq) {
       }
     }
     else {
-      if ( value == 255 ) {
+      if ( value == 255  ) {
         if ( u8g_WriteByte(u8g, dev, value) == 0 )
           return 0;
       } else
-      if ( value == 254 ) {
+      if ( value == 254  ) {
         break;
       } else
       if ( value >= 0xf0 ) {
