@@ -32,7 +32,7 @@
 #include <EEPROM.h>
 #include <TimerOne.h>
 #include <avr/pgmspace.h>
-#include "TM1637.h"
+#include "PeanutKingArduinoShield.h"
 #define ON 1
 #define OFF 0
 
@@ -46,12 +46,9 @@ unsigned char _second;
 unsigned int eepromaddr;
 boolean Flag_ReadTime;
 
-#define CLK 2//pins definitions for TM1637 and can be changed to other ports
-#define DIO 3
-TM1637 tm1637(CLK,DIO);
+SevenSegment tm1637(8, 9);    // (CLK, DIO)
 
-void setup()
-{
+void setup(void) {
   Serial.begin(9600);
   tm1637.set(BRIGHT_TYPICAL);//BRIGHT_TYPICAL = 2,BRIGHT_DARKEST = 0,BRIGHTEST = 7;
   tm1637.init();
@@ -64,12 +61,11 @@ void setup()
   Serial.println("W - write the time to EEPROM ");
   Serial.println("R - reset");
 }
-void loop()
-{
+
+void loop(void) {
   char command;
   command = Serial.read();
-  switch(command)
-  {
+  switch(command) {
     case 'S':stopwatchStart();Serial.println("Start timing...");break;
     case 'P':stopwatchPause();Serial.println("Stopwatch was paused");break;
     case 'L':readTime();break;
@@ -77,34 +73,30 @@ void loop()
     case 'R':stopwatchReset();Serial.println("Stopwatch was reset");break;
     default:break;
   }
-  if(Update == ON)
-  {
+  if(Update == ON) {
     TimeUpdate();
     tm1637.display(TimeDisp);
   }
 }
 //************************************************
-void TimingISR()
-{
+void TimingISR(void) {
   microsecond_10 ++;
   Update = ON;
-  if(microsecond_10 == 100){
+  if (microsecond_10 == 100) {
     second ++;
-    if(second == 60)
-    {
+    if(second == 60) {
       second = 0;
     }
     microsecond_10 = 0;
   }
   ClockPoint = (~ClockPoint) & 0x01;
-  if(Flag_ReadTime == 0)
-  {
+  if (Flag_ReadTime == 0) {
     _microsecond_10 = microsecond_10;
     _second = second;
   }
 }
-void TimeUpdate(void)
-{
+
+void TimeUpdate(void) {
   if(ClockPoint)tm1637.point(POINT_ON);//POINT_ON = 1,POINT_OFF = 0;
   else tm1637.point(POINT_ON);
   TimeDisp[2] = _microsecond_10 / 10;
@@ -113,17 +105,16 @@ void TimeUpdate(void)
   TimeDisp[1] = _second % 10;
   Update = OFF;
 }
-void stopwatchStart()//timer1 on
-{
+
+void stopwatchStart(void) { //timer1 on
   Flag_ReadTime = 0;
   TCCR1B |= Timer1.clockSelectBits;
 }
-void stopwatchPause()//timer1 off if [CS12 CS11 CS10] is [0 0 0].
-{
+void stopwatchPause(void) { //timer1 off if [CS12 CS11 CS10] is [0 0 0].
   TCCR1B &= ~(_BV(CS10) | _BV(CS11) | _BV(CS12));
 }
-void stopwatchReset()
-{
+
+void stopwatchReset(void) {
   stopwatchPause();
   Flag_ReadTime = 0;
   _microsecond_10 = 0;
@@ -132,24 +123,23 @@ void stopwatchReset()
   second = 0;
   Update = ON;
 }
-void saveTime()
-{
+
+void saveTime(void) {
   EEPROM.write(eepromaddr ++,microsecond_10);
   EEPROM.write(eepromaddr ++,second);
 }
-void readTime()
-{
+
+void readTime(void) {
   Flag_ReadTime = 1;
-  if(eepromaddr == 0)
-  {
+  if (eepromaddr == 0) {
     Serial.println("The time had been read");
     _microsecond_10 = 0;
     _second = 0;
   }
-  else{
-  _second = EEPROM.read(-- eepromaddr);
-  _microsecond_10 = EEPROM.read(-- eepromaddr);
-  Serial.println("List the time");
+  else {
+    _second = EEPROM.read(-- eepromaddr);
+    _microsecond_10 = EEPROM.read(-- eepromaddr);
+    Serial.println("List the time");
   }
   Update = ON;
 }

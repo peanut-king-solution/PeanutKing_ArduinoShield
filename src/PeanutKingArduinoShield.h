@@ -9,10 +9,10 @@
  */
 
 #include <Arduino.h>
-#include <nI2C.h>
+#include "IICIT.h"
+#include "OLED.h"
 #include "TimerOneOVF.h"
 #include "SevenSegment.h"
-#include "OLED.h"
 #include "LedMatrix.h"
 
 #pragma once
@@ -28,15 +28,16 @@
  * 4. motor, Ain1 D10,Ain2 D11, Bin1 D12, Bin2 D13
  */
 
-#define TCAADDR 0x70
+#define max3v(v1, v2, v3)   ((v1)<(v2)? ((v2)<(v3)?(v3):(v2)):((v1)<(v3)?(v3):(v1)))
+#define min3v(v1, v2, v3)   ((v1)>(v2)? ((v2)>(v3)?(v3):(v2)):((v1)>(v3)?(v3):(v1)))
 
-#define PIN_BUTTON  1
-#define PIN_MOTOR   1
 
-#define ADDR_MONITOR 1
-#define ADDR_COMPASS 1
-#define ADDR_MULPLXR 1
-
+#define TCAADDR     0x70
+#define PIN_BUTTON    1
+#define PIN_MOTOR     1
+#define ADDR_MONITOR  1
+#define ADDR_COMPASS  1
+#define ADDR_MULPLXR  1
 // #define colorSensor
 
 // PeanutkingCompass
@@ -47,6 +48,12 @@
 
 typedef enum { front = 0, left, right, back } sensorNum;
 
+typedef enum {
+  black=0,  white,   grey,
+  red,      green,   blue, 
+  yellow,   cyan,    magenta
+} color_t;
+
 typedef struct {
   uint32_t  c;      //[0-65536]
   uint32_t  r;
@@ -54,13 +61,7 @@ typedef struct {
   uint32_t  b;
 } rgbc_t; //RGBC
 
-typedef enum {
-  black=0,  white,   grey,
-  red,      green,   blue, 
-  yellow,   cyan,    magenta
-} color_t;
-
-typedef struct{
+typedef struct {
   uint16_t h;       //[0,360]
   uint8_t  s;       //[0,100]
   uint8_t  l;       //[0,100]
@@ -72,22 +73,25 @@ typedef struct {
   uint8_t b;
 } rgb_t; 
 
-void I2CSend(CI2C::Handle handle, uint8_t *data, uint8_t length);
-void I2CRead(CI2C::Handle handle, uint8_t *data, uint8_t length);
+
+void I2CSend(IICIT::Handle handle, uint8_t *data, uint8_t length);
+void I2CRead(IICIT::Handle handle, uint8_t *data, uint8_t length);
 void _statusError(const uint8_t _status);
+void rgb2hsl(rgbc_t *rgbc, hsl_t *hsl, rgb_t *rgb);
+
 
 // Multiplexer -----------------------------------------------------
 class Multiplexer {
  public:
-  Multiplexer() {
+  Multiplexer(void) {
     pinMode(2, OUTPUT);
     digitalWrite(2, HIGH);
-    mulPlxHandle = nI2C->RegisterDevice(TCAADDR, 1, CI2C::Speed::SLOW);
+    mulPlxHandle = gIIC->RegisterDevice(TCAADDR, 1, IICIT::Speed::SLOW);
   }
   void select(uint8_t i) {
-    if (i > 8) return;
-    uint8_t message[1] = { (1 << idx[i]) };
-    uint8_t _status = nI2C->Write(mulPlxHandle, message, 1);
+    if (i > 9) return;
+    uint8_t message[1] = { 0x01 << (idx[i]) };
+    uint8_t _status = gIIC->Write(mulPlxHandle, message, 1);
     if (_status != 0) {
       Serial.print("write: ");
       _statusError(_status);
@@ -96,41 +100,66 @@ class Multiplexer {
   }
   // B1-B8: idx[1] - idx[8]
   const uint8_t idx[9] = {0, 7, 6, 5, 4, 0, 1, 2, 3};
-  CI2C::Handle mulPlxHandle;
+  IICIT::Handle mulPlxHandle;
 };
 
 //color sensor
 class colorSensor {
  public:
-  Multiplexer Multiplexer;
-  colorSensor() {
-    clrSnrHandle = nI2C->RegisterDevice(0x11, 1, CI2C::Speed::SLOW);
+  Multiplexer multiplexer;
+  colorSensor(void) {
+    clrSnrHandle = gIIC->RegisterDevice(0x11, 1, IICIT::Speed::SLOW);
   }
 
-  color_t getcolor(uint8_t index) {
-    uint8_t buff[1]={0};
-    Multiplexer.select(index);
-    I2CSend(clrSnrHandle, 0x01, 1);
-    I2CRead(clrSnrHandle, buff, 1);
-
-    return buff[0];
+  uint8_t getcolor(uint8_t index) {
+    uint8_t cmd = 0x01, ans;
+    multiplexer.select(index);
+    I2CSend(clrSnrHandle, &cmd, 1);
+    I2CRead(clrSnrHandle, &ans, 1);
+    return ans;
+  }
+  rgb_t getrgb(uint8_t index ) {
+    uint8_t cmd = 0x08;
+    rgb_t rgb;
+    multiplexer.select(index);
+    I2CSend(clrSnrHandle, &cmd, 1);
+    I2CRead(clrSnrHandle, (uint8_t *)&rgb, 3);
+    return rgb;
   }
   hsl_t gethsl(uint8_t index ) {
-     hsl_t hsl;
-    Multiplexer.select(index);
-    //I2CSend(clrSnrHandle,0x03, 1);
+    uint8_t cmd = 0x03;
+    hsl_t hsl;
+    multiplexer.select(index);
+    I2CSend(clrSnrHandle, &cmd, 1);
     I2CRead(clrSnrHandle, (uint8_t *)&hsl, 4);
   // hsl->h = buff[0]|buff[1]<<8;
   // hsl->s = buff[2];
   // hsl->l = buff[3];
     return hsl;
   }
-  rgbc_t getrgb(uint8_t index ) {
+  rgbc_t getrgbc(uint8_t index ) {
+    uint8_t cmd = 0x02;
+    uint8_t _status;
     rgbc_t rgbc;
-    //  rgb_t rgb;
-    Multiplexer.select(index);
-    //I2CSend(clrSnrHandle,0x02, 1);
+
+    multiplexer.select(index);
+    I2CSend(clrSnrHandle, &cmd, 1);
     I2CRead(clrSnrHandle, (uint8_t *)&rgbc, 16);
+
+    // _status = gIIC->Write(clrSnrHandle, &cmd, 1);
+    // if (_status != 0) {
+    //   Serial.print("write: ");
+    //   _statusError(_status);
+    //   return;
+    // }
+
+    // _status = gIIC->Read(clrSnrHandle, (uint8_t *)&rgbc, 16);
+    // if (_status != 0) {
+    //   Serial.print("write: ");
+    //   _statusError(_status);
+    //   return;
+    // }
+
     // I2CRead(clrSnrHandle, (uint8_t *)&rgb, 3);
     // Serial.print("rgb: ");
     // Serial.print(rgbc.c);  Serial.print(" ");
@@ -145,7 +174,7 @@ class colorSensor {
     return rgbc;
   }
 
-  CI2C::Handle clrSnrHandle;
+  IICIT::Handle clrSnrHandle;
 };
 
 
@@ -153,7 +182,7 @@ class colorSensor {
 // Button -----------------------------------------------------
 class Button {
  public:
-  Button() {
+  Button(void) {
     pinMode(pin, INPUT);
   }
   Button(uint8_t pin) : pin(pin) {
@@ -190,29 +219,28 @@ class Button {
 // getCompass -----------------------------------------------------
 class Compass {
  public:
-  Compass() : addr(8) {
-    cpsHandle = nI2C->RegisterDevice(addr, 1, CI2C::Speed::SLOW);
+  Compass(void) : addr(8) {
+    cpsHandle = gIIC->RegisterDevice(addr, 1, IICIT::Speed::SLOW);
   }
   Compass(int8_t _addr) : addr(_addr) {
-    cpsHandle = nI2C->RegisterDevice(addr, 1, CI2C::Speed::SLOW);
+    cpsHandle = gIIC->RegisterDevice(addr, 1, IICIT::Speed::SLOW);
   }
   float get(uint8_t cmd = 0x55) {
     uint16_t temp=0;
-    uint8_t txBuff[1] = {cmd};
     uint8_t _status;
 
-    _status = nI2C->Write(cpsHandle, txBuff, 1);
+    _status = gIIC->Write(cpsHandle, &cmd, 1);
     if (_status != 0) {
       Serial.print("write: ");
       _statusError(_status);
-      return;
+      return 0;
     }
 
-    _status = nI2C->Read(cpsHandle, data, 3);
+    _status = gIIC->Read(cpsHandle, data, 3);
     if (_status != 0) {
       Serial.print("write: ");
       _statusError(_status);
-      return;
+      return 0;
     }
     temp  = data[1] & 0xFF;
     temp |= (data[2] << 8);
@@ -221,7 +249,7 @@ class Compass {
   }
 
   const int8_t addr;
-  CI2C::Handle cpsHandle;
+  IICIT::Handle cpsHandle;
 
   uint8_t data[3] = {0};
   float answer = 888;
@@ -235,7 +263,7 @@ class Ultrasonic {
     pinMode(tx, OUTPUT);
     pinMode(rx, INPUT);
   }
-  uint16_t get() {
+  uint16_t get(void) {
     uint32_t duration=0;
     uint16_t distance=0;
     digitalWrite(txPin, LOW);
@@ -253,7 +281,7 @@ class Ultrasonic {
 
 class Motor {
  public:
-  Motor() :
+  Motor(void) :
   dirPin  {6, 10},
   dir2Pin {9, 11} {
     pinMode(dirPin[0], OUTPUT);
@@ -285,12 +313,10 @@ class Motor {
 
 
 
-
 // PeanutKingArduinoShield -----------------------------------------------------
 class PeanutKingArduinoShield {
  public:
-  PeanutKingArduinoShield() {
-  }
+  PeanutKingArduinoShield(void) {}
   Button      button;
   Compass     compass;
   colorSensor rgbcolor;

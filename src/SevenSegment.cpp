@@ -1,5 +1,5 @@
 /* SevenSegment.cpp
- * digit 7-Segment display library4
+ * digit 7-Segment display library for tm1637
  * Copyright (c) 2021 PeanutKing Solution
  * Author     : Jack Kwok
  * Create Time: 7 Jul 2021

@@ -27,7 +27,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include <Wire.h>
+// #include <Wire.h>
 #include <TimerOne.h>
 #include "SevenSegment.h"
 #define ON 1

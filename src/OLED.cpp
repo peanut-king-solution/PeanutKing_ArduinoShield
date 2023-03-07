@@ -1,250 +1,301 @@
 /*
-
+  06/01/2016
+  Author: Makerbro
+  Platforms: ESP8266
+  Language: C++
+  File: ACROBOTIC_SSD1306.cpp
+  ------------------------------------------------------------------------
+  Description:
+  SSD1306 OLED Driver Library.
+  ------------------------------------------------------------------------
+  Please consider buying products from ACROBOTIC to help fund future
+  Open-Source projects like this! We'll always put our best effort in every
+  project, and release all our design files and code for you to use.
+  https://acrobotic.com/
+  ------------------------------------------------------------------------
+  License:
+  Released under the MIT license. Please check LICENSE.txt for more
+  information.  All text above must be included in any redistribution.
 */
 
 #include "OLED.h"
 
-uint8_t OLED::initI2C(u8g_dev_t *dev, uint8_t options) {
-  prepare();
-  return u8g_InitI2C(&u8g, dev, options);
+void ACROBOTIC_SSD1306::init(void) {
+  oledHandle = gIIC->RegisterDevice(SSD1306_Address, 1, IICIT::Speed::SLOW);
+
+  displayOff();      // display off
+  sendCommand(0xA6); // Set Normal Display (default)
+  displayOff();      // display off
+  sendCommand(0xD5); // SETDISPLAYCLOCKDIV
+  sendCommand(0x80); // the suggested ratio 0x80
+  sendCommand(0xA8); // SSD1306_SETMULTIPLEX
+  sendCommand(SSD1306_Max_Y);
+  sendCommand(0xD3);       // SETDISPLAYOFFSET
+  sendCommand(0x0);        // no offset
+  sendCommand(0x40 | 0x0); // SETSTARTLINE
+  sendCommand(0x8D);       // CHARGEPUMP
+  sendCommand(0x14);
+  sendCommand(0x20); // MEMORYMODE
+  sendCommand(0x00); // 0x0 act like ks0108
+  sendCommand(0xA1); // SEGREMAP   Mirror screen horizontally (A0)
+  sendCommand(0xC8); // COMSCANDEC Rotate screen vertically (C0)
+  sendCommand(0xDA); // 0xDA
+  sendCommand(0x12); // COMSCANDEC
+  sendCommand(0x81); // SETCONTRAST
+  sendCommand(0xCF); //
+  sendCommand(0xd9); // SETPRECHARGE
+  sendCommand(0xF1);
+  sendCommand(0xDB); // SETVCOMDETECT
+  sendCommand(0x40);
+  sendCommand(0xA4); // DISPLAYALLON_RESUME
+  sendCommand(0xA6); // NORMALDISPLAY
+  clearDisplay();
+  sendCommand(0x2E); // Stop scroll
+  sendCommand(0x20); // Set Memory Addressing Mode
+  sendCommand(0x00); // Set Memory Addressing Mode ab Horizontal addressing mode
+  setFont(font8x8);
 }
 
-uint8_t u8g_dev_rot_dummy_fn(u8g_t *u8g, u8g_dev_t*dev, uint8_t msg, void *arg) {
-  return 0;
+void ACROBOTIC_SSD1306::displayOn() {
+  sendCommand(0xAF);
 }
 
-u8g_dev_t u8g_dev_rot = { u8g_dev_rot_dummy_fn, NULL, NULL };
+void ACROBOTIC_SSD1306::displayOff() {
+  sendCommand(0xAE);
+}
 
-/*
-  u8g_dev_ssd1306_128x64.c
-*/
-/* init sequence adafruit 128x64 OLED (NOT TESTED) */
-static const uint8_t u8g_dev_ssd1306_128x64_adafruit2_init_seq[] PROGMEM = {
-  U8G_ESC_CS(0),             /* disable chip */
-  U8G_ESC_ADR(0),           /* instruction mode */
-  U8G_ESC_RST(1),           /* do reset low pulse with (1*16)+2 milliseconds */
-  U8G_ESC_CS(1),             /* enable chip */
+void ACROBOTIC_SSD1306::setFont(const uint8_t *font, bool inverse) {
+  m_font = font;
+  m_inverse = inverse;
+  m_font_width = pgm_read_byte(&m_font[0]);
+}
 
-  0x0ae,        /* display off, sleep mode */
-  0x0d5, 0x080,    /* clock divide ratio (0x00=1) and oscillator frequency (0x8) */
-  0x0a8, 0x03f,    /* */
+void ACROBOTIC_SSD1306::sendCommand(unsigned char command) {
+  uint8_t txBuff[2] = {SSD1306_Command_Mode, command};
+  uint8_t _status = gIIC->Write(oledHandle, txBuff, 2);
+  // m_wire->beginTransmission(SSD1306_Address); // begin I2C communication
+  // m_wire->write(SSD1306_Command_Mode);        // Set OLED Command mode
+  // m_wire->write(command);
+  // m_wire->endTransmission(); // End I2C communication
+}
 
-  0x0d3, 0x000,    /*  */
+void ACROBOTIC_SSD1306::setBrightness(unsigned char Brightness) {
+  sendCommand(SSD1306_Set_Brightness_Cmd);
+  sendCommand(Brightness);
+}
 
-  0x040,        /* start line */
-  
-  0x08d, 0x014,    /* [2] charge pump setting (p62): 0x014 enable, 0x010 disable */
+void ACROBOTIC_SSD1306::setHorizontalMode() {
+  addressingMode = HORIZONTAL_MODE;
+  sendCommand(0x20); // set addressing mode
+  sendCommand(0x00); // set horizontal addressing mode
+}
 
-  0x020, 0x000,    /* */
-  0x0a1,        /* segment remap a0/a1*/
-  0x0c8,        /* c0: scan dir normal, c8: reverse */
-  0x0da, 0x012,    /* com pin HW config, sequential com pin config (bit 4), disable left/right remap (bit 5) */
-  0x081, 0x0cf,    /* [2] set contrast control */
-  0x0d9, 0x0f1,    /* [2] pre-charge period 0x022/f1*/
-  0x0db, 0x040,    /* vcomh deselect level */
-  
-  0x02e,        /* 2012-05-27: Deactivate scroll */ 
-  0x0a4,        /* output ram to display */
-  0x0a6,        /* none inverted normal display mode */
-  0x0af,        /* display on */
+void ACROBOTIC_SSD1306::setPageMode() {
+  addressingMode = PAGE_MODE;
+  sendCommand(0x20); // set addressing mode
+  sendCommand(0x02); // set page addressing mode
+}
 
-  U8G_ESC_CS(0),             /* disable chip */
-  U8G_ESC_END                /* end of sequence */
-};
+void ACROBOTIC_SSD1306::setTextXY(unsigned char row, unsigned char col) {
+  sendCommand(0xB0 + row);                                // set page address
+  sendCommand(0x00 + (m_font_width * col & 0x0F));        // set column lower addr
+  sendCommand(0x10 + ((m_font_width * col >> 4) & 0x0F)); // set column higher addr
+}
 
-/* init sequence adafruit 128x64 OLED (NOT TESTED), like adafruit3, but with page addressing mode */
-static const uint8_t u8g_dev_ssd1306_128x64_adafruit3_init_seq[] PROGMEM = {
-  U8G_ESC_CS(0),             /* disable chip */
-  U8G_ESC_ADR(0),           /* instruction mode */
-  U8G_ESC_RST(1),           /* do reset low pulse with (1*16)+2 milliseconds */
-  U8G_ESC_CS(1),             /* enable chip */
-
-  0x0ae,        /* display off, sleep mode */
-  0x0d5, 0x080,    /* clock divide ratio (0x00=1) and oscillator frequency (0x8) */
-  0x0a8, 0x03f,    /* */
-
-  0x0d3, 0x000,    /*  */
-
-  0x040,        /* start line */
-  
-  0x08d, 0x014,    /* [2] charge pump setting (p62): 0x014 enable, 0x010 disable */
-
-  0x020, 0x002,    /* 2012-05-27: page addressing mode */
-  0x0a1,        /* segment remap a0/a1*/
-  0x0c8,        /* c0: scan dir normal, c8: reverse */
-  0x0da, 0x012,    /* com pin HW config, sequential com pin config (bit 4), disable left/right remap (bit 5) */
-  0x081, 0x0cf,    /* [2] set contrast control */
-  0x0d9, 0x0f1,    /* [2] pre-charge period 0x022/f1*/
-  0x0db, 0x040,    /* vcomh deselect level */
-  
-  0x02e,        /* 2012-05-27: Deactivate scroll */ 
-  0x0a4,        /* output ram to display */
-  0x0a6,        /* none inverted normal display mode */
-  0x0af,        /* display on */
-
-  U8G_ESC_CS(0),             /* disable chip */
-  U8G_ESC_END                /* end of sequence */
-};
-
-/* init sequence Univision datasheet (NOT TESTED) */
-static const uint8_t u8g_dev_ssd1306_128x64_univision_init_seq[] PROGMEM = {
-  U8G_ESC_CS(0),             /* disable chip */
-  U8G_ESC_ADR(0),           /* instruction mode */
-  U8G_ESC_RST(1),           /* do reset low pulse with (1*16)+2 milliseconds */
-  U8G_ESC_CS(1),             /* enable chip */
-
-  0x0ae,        /* display off, sleep mode */
-  0x0d5, 0x080,    /* clock divide ratio (0x00=1) and oscillator frequency (0x8) */
-  0x0a8, 0x03f,    /* multiplex ratio */
-  0x0d3, 0x000,    /* display offset */
-  0x040,        /* start line */
-  0x08d, 0x010,    /* charge pump setting (p62): 0x014 enable, 0x010 disable */
-  0x0a1,        /* segment remap a0/a1*/
-  0x0c8,        /* c0: scan dir normal, c8: reverse */
-  0x0da, 0x012,    /* com pin HW config, sequential com pin config (bit 4), disable left/right remap (bit 5) */
-  0x081, 0x09f,    /* set contrast control */
-  0x0d9, 0x022,    /* pre-charge period */
-  0x0db, 0x040,    /* vcomh deselect level */
-  0x022, 0x000,    /* page addressing mode WRONG: 3 byte cmd! */
-  0x0a4,        /* output ram to display */
-  0x0a6,        /* none inverted normal display mode */
-  0x0af,        /* display on */
-  U8G_ESC_CS(0),             /* disable chip */
-  U8G_ESC_END                /* end of sequence */
-};
-
-#define u8g_dev_ssd1306_128x64_init_seq u8g_dev_ssd1306_128x64_adafruit3_init_seq
-
-
-static const uint8_t u8g_dev_ssd1306_128x64_data_start[] PROGMEM = {
-  U8G_ESC_ADR(0),   /* instruction mode */
-  U8G_ESC_CS(1),    /* enable chip */
-  0x010,            /* set upper 4 bit of the col adr to 0 */
-  0x000,            /* set lower 4 bit of the col adr to 0  */
-  U8G_ESC_END       /* end of sequence */
-};
-
-static const uint8_t u8g_dev_ssd13xx_sleep_on[] PROGMEM = {
-  U8G_ESC_ADR(0),   /* instruction mode */
-  U8G_ESC_CS(1),    /* enable chip */
-  0x0ae,            /* display off */      
-  U8G_ESC_CS(0),    /* disable chip, bugfix 12 nov 2014 */
-  U8G_ESC_END       /* end of sequence */
-};
-
-static const uint8_t u8g_dev_ssd13xx_sleep_off[] PROGMEM = {
-  U8G_ESC_ADR(0),           /* instruction mode */
-  U8G_ESC_CS(1),             /* enable chip */
-  0x0af,    /* display on */      
-  U8G_ESC_DLY(50),       /* delay 50 ms */
-  U8G_ESC_CS(0),             /* disable chip, bugfix 12 nov 2014 */
-  U8G_ESC_END                /* end of sequence */
-};
-
-
-
-uint8_t u8g_dev_ssd1306_128x64_2x_fn(u8g_t *u8g, u8g_dev_t *dev, uint8_t msg, void *arg) {
-  switch(msg) {
-    case U8G_DEV_MSG_INIT:
-      u8g_InitCom(u8g, dev, U8G_SPI_CLK_CYCLE_300NS);
-      u8g_WriteEscSeqP(u8g, dev, u8g_dev_ssd1306_128x64_init_seq);
-      break;
-    case U8G_DEV_MSG_STOP:
-      break;
-    case U8G_DEV_MSG_PAGE_NEXT:
-      {
-        u8g_pb_t *pb = (u8g_pb_t *)(dev->dev_mem);
-  
-        u8g_WriteEscSeqP(u8g, dev, u8g_dev_ssd1306_128x64_data_start);    
-        u8g_WriteByte(u8g, dev, 0x0b0 | (pb->p.page*2)); /* select current page (SSD1306) */
-        u8g_SetAddress(u8g, dev, 1);           /* data mode */
-        u8g_WriteSequence(u8g, dev, pb->width, pb->buf); 
-        u8g_SetChipSelect(u8g, dev, 0);
-  
-        u8g_WriteEscSeqP(u8g, dev, u8g_dev_ssd1306_128x64_data_start);    
-        u8g_WriteByte(u8g, dev, 0x0b0 | (pb->p.page*2+1)); /* select current page (SSD1306) */
-        u8g_SetAddress(u8g, dev, 1);           /* data mode */
-        u8g_WriteSequence(u8g, dev, pb->width, (uint8_t *)(pb->buf)+pb->width); 
-        u8g_SetChipSelect(u8g, dev, 0);
-      }
-      break;
-    case U8G_DEV_MSG_SLEEP_ON:
-      u8g_WriteEscSeqP(u8g, dev, u8g_dev_ssd13xx_sleep_on);    
-      return 1;
-    case U8G_DEV_MSG_SLEEP_OFF:
-      u8g_WriteEscSeqP(u8g, dev, u8g_dev_ssd13xx_sleep_off);    
-      return 1;
-    case U8G_DEV_MSG_CONTRAST:
-    {
-      u8g_SetChipSelect(u8g, dev, 1);
-      u8g_SetAddress(u8g, dev, 0); /* instruction mode */
-      u8g_WriteByte(u8g, dev, 0x81);
-      u8g_WriteByte(u8g, dev, *(uint8_t *) arg);
-      u8g_SetChipSelect(u8g, dev, 0);
-      return 1;
+void ACROBOTIC_SSD1306::clearDisplay() {
+  unsigned char i, j;
+  sendCommand(SSD1306_Display_Off_Cmd); // display off
+  for (j = 0; j < 8; j++) {
+    setTextXY(j, 0);
+    for (i = 0; i < 16; i++) {
+      putChar(' ');// clear all columns
     }
   }
-  return u8g_dev_pb16v1_base_fn(u8g, dev, msg, arg);
+  sendCommand(SSD1306_Display_On_Cmd); // display on
+  setTextXY(0, 0);
 }
 
-// uint8_t u8g_dev_ssd1306_128x64_2x_buf[WIDTH*2] U8G_NOCOMMON ; 
-// u8g_pb_t u8g_dev_ssd1306_128x64_2x_pb = { {16, HEIGHT, 0, 0, 0},  WIDTH, u8g_dev_ssd1306_128x64_2x_buf}; 
-// u8g_dev_t u8g_dev_ssd1306_128x64_2x_i2c = { u8g_dev_ssd1306_128x64_2x_fn, &u8g_dev_ssd1306_128x64_2x_pb, U8G_COM_SSD_I2C };
+void ACROBOTIC_SSD1306::sendData(unsigned char Data) {
+  uint8_t txBuff[2] = {SSD1306_Data_Mode, Data};
+  uint8_t _status = gIIC->Write(oledHandle, txBuff, 2);
+  // m_wire->beginTransmission(SSD1306_Address); // begin I2C transmission
+  // m_wire->write(SSD1306_Data_Mode);           // data mode
+  // m_wire->write(m_inverse ? ~Data : Data);
+  // m_wire->endTransmission(); // stop I2C transmission
+}
 
-
-static uint8_t OLED_SSD1306_128X64::u8g_dev_ssd1306_128x64_i2c_buf[WIDTH] U8G_NOCOMMON;
-static u8g_pb_t OLED_SSD1306_128X64::u8g_dev_ssd1306_128x64_i2c_pb = { {PAGE_HEIGHT, HEIGHT, 0, 0, 0}, WIDTH, u8g_dev_ssd1306_128x64_i2c_buf};
-static u8g_dev_t OLED_SSD1306_128X64::u8g_dev_ssd1306_128x64_i2c = { u8g_dev_ssd1306_128x64_fn, &u8g_dev_ssd1306_128x64_i2c_pb, U8G_COM_SSD_I2C };
-
-static CI2C::Handle OLED_SSD1306_128X64::oledHandle;
-
-
-OLED_SSD1306_128X64::OLED_SSD1306_128X64(uint8_t options = U8G_I2C_OPT_NONE) 
-  : OLED(&OLED_SSD1306_128X64::u8g_dev_ssd1306_128x64_i2c, options)
-  { }
-
-static uint8_t OLED_SSD1306_128X64::u8g_dev_ssd1306_128x64_fn(u8g_t *u8g, u8g_dev_t *dev, uint8_t msg, void *arg) {
-  switch(msg) {
-    case U8G_DEV_MSG_INIT:
-      u8g_InitCom(u8g, dev, U8G_SPI_CLK_CYCLE_300NS);
-      u8g_WriteEscSeqP(u8g, dev, u8g_dev_ssd1306_128x64_adafruit2_init_seq);
-      // oledHandle = nI2C->RegisterDevice(0x3c, 1, CI2C::Speed::SLOW);
-      oledHandle = nI2C->RegisterDevice(0x3c, 1, CI2C::Speed::SLOW);
-      
-      break;
-    case U8G_DEV_MSG_STOP:
-      break;
-    case U8G_DEV_MSG_PAGE_NEXT:
-      {
-        u8g_pb_t *pb = (u8g_pb_t *)(dev->dev_mem);
-        u8g_WriteEscSeqP(u8g, dev, u8g_dev_ssd1306_128x64_data_start);    
-        u8g_WriteByte(u8g, dev, 0xb0 | pb->p.page);  /* select current page (SSD1306) */
-
-        u8g_SetAddress(u8g, dev, 1);                  /* data mode */
-        if ( u8g_WriteSequence(u8g, dev, pb->width, pb->buf) == 0 )
-          return 0;
-        u8g_SetChipSelect(u8g, dev, 0);
-
-        // uint8_t _status = nI2C->Write(oledHandle, pb->buf, pb->width);
-      }
-      break;
-    case U8G_DEV_MSG_SLEEP_ON:
-      u8g_WriteEscSeqP(u8g, dev, u8g_dev_ssd13xx_sleep_on);    
-      return 1;
-    case U8G_DEV_MSG_SLEEP_OFF:
-      u8g_WriteEscSeqP(u8g, dev, u8g_dev_ssd13xx_sleep_off);    
-      return 1;
-    case U8G_DEV_MSG_CONTRAST:
-    {
-      u8g_SetChipSelect(u8g, dev, 1);
-      u8g_SetAddress(u8g, dev, 0);                    /* instruction mode */
-      u8g_WriteByte(u8g, dev, 0x81);
-      u8g_WriteByte(u8g, dev, *(uint8_t *) arg);
-      u8g_SetChipSelect(u8g, dev, 0);
-      return 1;
-    }
+bool ACROBOTIC_SSD1306::putChar(unsigned char ch) {
+  if (!m_font)
+    return 0;
+  // Ignore non-printable ASCII characters. This can be modified for
+  // multilingual font.
+  if (ch < 32 || ch > 127) {
+    ch = ' ';
   }
-  return u8g_dev_pb8v1_base_fn(u8g, dev, msg, arg);
+  for (unsigned char i = 0; i < m_font_width; i++) {
+    // Font array starts at 0, ASCII starts at 32
+    sendData(pgm_read_byte(&m_font[(ch - 32) * m_font_width + m_font_offset + i]));
+  }
+  return 1;
 }
 
+void ACROBOTIC_SSD1306::putString(const char *string) {
+  unsigned char i = 0;
+  while (string[i]) {
+    putChar(string[i]);
+    i++;
+  }
+}
 
+void ACROBOTIC_SSD1306::putString(String string) {
+  char char_array[string.length() + 1];
+  string.toCharArray(char_array, sizeof(char_array));
+  putString(char_array);
+}
+
+unsigned char ACROBOTIC_SSD1306::putNumber(long long_num) {
+  unsigned char char_buffer[10] = "";
+  unsigned char i = 0;
+  unsigned char f = 0;
+
+  if (long_num < 0) {
+    f = 1;
+    putChar('-');
+    long_num = -long_num;
+  }
+  else if (long_num == 0) {
+    f = 1;
+    putChar('0');
+    return f;
+  }
+
+  while (long_num > 0) {
+    char_buffer[i++] = long_num % 10;
+    long_num /= 10;
+  }
+
+  f = f + i;
+  for (; i > 0; i--) {
+    putChar('0' + char_buffer[i - 1]);
+  }
+  return f;
+}
+
+unsigned char ACROBOTIC_SSD1306::putFloat(float floatNumber, unsigned char decimal){
+  unsigned int temp = 0;
+  float decy = 0.0;
+  float rounding = 0.5;
+  unsigned char f = 0;
+  if (floatNumber < 0.0) {
+    putString("-");
+    floatNumber = -floatNumber;
+    f += 1;
+  }
+  for (unsigned char i = 0; i < decimal; ++i)  {
+    rounding /= 10.0;
+  }
+  floatNumber += rounding;
+
+  temp = floatNumber;
+  f += putNumber(temp);
+  if (decimal > 0) {
+    putChar('.');
+    f += 1;
+  }
+  decy = floatNumber - temp;                  // decimal part,
+  for (unsigned char i = 0; i < decimal; i++) {// 4
+    decy *= 10;  // for the next decimal
+    temp = decy; // get the decimal
+    putNumber(temp);
+    decy -= temp;
+  }
+  f += decimal;
+  return f;
+}
+
+unsigned char ACROBOTIC_SSD1306::putFloat(float floatNumber) {
+  unsigned char decimal = 2;
+  unsigned int temp = 0;
+  float decy = 0.0;
+  float rounding = 0.5;
+  unsigned char f = 0;
+  if (floatNumber < 0.0)
+  {
+    putString("-");
+    floatNumber = -floatNumber;
+    f += 1;
+  }
+  for (unsigned char i = 0; i < decimal; ++i)
+  {
+    rounding /= 10.0;
+  }
+  floatNumber += rounding;
+
+  temp = floatNumber;
+  f += putNumber(temp);
+  if (decimal > 0)
+  {
+    putChar('.');
+    f += 1;
+  }
+  decy = floatNumber - temp;                  // decimal part,
+  for (unsigned char i = 0; i < decimal; i++) // 4
+  {
+    decy *= 10;  // for the next decimal
+    temp = decy; // get the decimal
+    putNumber(temp);
+    decy -= temp;
+  }
+  f += decimal;
+  return f;
+}
+
+void ACROBOTIC_SSD1306::drawBitmap(unsigned char *bitmaparray, int bytes) {
+  char localAddressMode = addressingMode;
+  if (addressingMode != HORIZONTAL_MODE) {
+    // Bitmap is drawn in horizontal mode
+    setHorizontalMode();
+  }
+
+  for (int i = 0; i < bytes; i++) {
+    sendData(pgm_read_byte(&bitmaparray[i]));
+  }
+
+  if (localAddressMode == PAGE_MODE) {
+    // If pageMode was used earlier, restore it.
+    setPageMode();
+  }
+}
+
+void ACROBOTIC_SSD1306::setHorizontalScrollProperties(bool direction, unsigned char startPage, unsigned char endPage, unsigned char scrollSpeed) {
+  if (Scroll_Right == direction) {
+    sendCommand(0x26);
+  }
+  else {    // Scroll left
+    sendCommand(0x27);
+  }
+  sendCommand(0x00);
+  sendCommand(startPage);
+  sendCommand(scrollSpeed);
+  sendCommand(endPage);
+  sendCommand(0x00);
+  sendCommand(0xFF);
+}
+
+void ACROBOTIC_SSD1306::activateScroll() {
+  sendCommand(SSD1306_Activate_Scroll_Cmd);
+}
+
+void ACROBOTIC_SSD1306::deactivateScroll() {
+  sendCommand(SSD1306_Dectivate_Scroll_Cmd);
+}
+
+void ACROBOTIC_SSD1306::setNormalDisplay() {
+  sendCommand(SSD1306_Normal_Display_Cmd);
+}
+
+void ACROBOTIC_SSD1306::setInverseDisplay() {
+  sendCommand(SSD1306_Inverse_Display_Cmd);
+}
+
+ACROBOTIC_SSD1306 oled; // Pre-instantiate object

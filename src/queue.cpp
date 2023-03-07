@@ -27,29 +27,28 @@
 
 #include "queue.h"
 
-void* memcpy_fast(void* dst, const void* src, uint16_t num)
-{
-    asm volatile(
-         "  movw r30, %[src]        \n\t"
-         "  movw r26, %[dst]        \n\t"
-         "  sbrs %A[num], 0         \n\t"
-         "  rjmp Lcpyeven_%=        \n\t"
-         "  rjmp Lcpyodd_%=         \n\t"
-         "Lcpyloop_%=:              \n\t"
-         "  ld __tmp_reg__, Z+      \n\t"
-         "  st X+, __tmp_reg__      \n\t"
-         "Lcpyodd_%=:               \n\t"
-         "  ld __tmp_reg__, Z+      \n\t"
-         "  st X+, __tmp_reg__      \n\t"
-         "Lcpyeven_%=:              \n\t"
-         "  subi %A[num], 2         \n\t"
-         "  brcc Lcpyloop_%=        \n\t"
-         "  sbci %B[num], 0         \n\t"
-         "  brcc Lcpyloop_%=        \n\t"
-         : [num] "+r" (num)
-         : [src] "r" (src),
-           [dst] "r" (dst)
-         : "memory"
-         );
-    return dst;
+void* memcpy_fast(void* dst, const void* src, uint16_t num) {
+  asm volatile(
+    "  movw r30, %[src]        \n\t"
+    "  movw r26, %[dst]        \n\t"
+    "  sbrs %A[num], 0         \n\t"
+    "  rjmp Lcpyeven_%=        \n\t"
+    "  rjmp Lcpyodd_%=         \n\t"
+    "Lcpyloop_%=:              \n\t"
+    "  ld __tmp_reg__, Z+      \n\t"
+    "  st X+, __tmp_reg__      \n\t"
+    "Lcpyodd_%=:               \n\t"
+    "  ld __tmp_reg__, Z+      \n\t"
+    "  st X+, __tmp_reg__      \n\t"
+    "Lcpyeven_%=:              \n\t"
+    "  subi %A[num], 2         \n\t"
+    "  brcc Lcpyloop_%=        \n\t"
+    "  sbci %B[num], 0         \n\t"
+    "  brcc Lcpyloop_%=        \n\t"
+    : [num] "+r" (num)
+    : [src] "r" (src),
+      [dst] "r" (dst)
+    : "memory"
+    );
+  return dst;
 }

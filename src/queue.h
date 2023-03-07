@@ -30,14 +30,14 @@
 
 #include <inttypes.h>
 
-#if defined(__AVR__)
-extern "C"
-{
+#ifdef __cplusplus
+extern "C" {
   void *memcpy_fast(void *dst, const void *src, uint16_t num) __attribute__((noinline));
 }
 #else
 #define memcpy_fast memcpy
 #endif
+
 
 template <class T>
 class CQueue {

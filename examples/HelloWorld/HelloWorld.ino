@@ -1,12 +1,12 @@
 /*
-  
+
 */
 #include "PeanutKingArduinoShield.h"
 
 #define ON 1
 #define OFF 0
 
-int8_t TimeDisp[] = {0x00,0x00,0x00,0x00};
+uint8_t TimeDisp[] = {0x00, 0x00, 0x00, 0x00};
 unsigned char ClockPoint = 1;
 unsigned char Update;
 unsigned char halfsecond = 0;
@@ -14,86 +14,72 @@ unsigned char second;
 unsigned char minute = 0;
 unsigned char hour = 12;
 
-SevenSegment tm1637(8,9);     // (CLK, DIO)
-
-OLED_SSD1306_128X64 u8g(U8G_I2C_OPT_NONE|U8G_I2C_OPT_DEV_0);  // I2C / TWI 
-
-LedMatrix lc=LedMatrix(3,5,4,1);    
-
+SevenSegment tm1637(8, 9);    // (CLK, DIO)
+LedMatrix lc = LedMatrix(3, 4, 5, 1);
 PeanutKingArduinoShield robot;
+Multiplexer multiplexer = Multiplexer();
 
 Button button = Button();
 Compass compass = Compass();
-Ultrasonic ultrasonic = Ultrasonic(6,7);
-colorSensor rgbcolor = colorSensor();
-Multiplexer multiplexer = Multiplexer();
+//Ultrasonic ultrasonic = Ultrasonic(6, 7);
+//colorSensor rgbcolor = colorSensor();
 Motor motor = Motor();
 
-
-void setup() {
-  Wire.begin();        // join i2c bus (address optional for master)
+void setup(void) {
   Serial.begin(115200);  // start serial for output
-
+  
+  delay(10);
+  
   tm1637.set();
   tm1637.init();
   Timer1.initialize(500000);//timing for 500ms
   Timer1.attachInterrupt(TimingISR);//declare the interrupt serve routine:TimingISR
 
+  delay(10);
   /*
-   The MAX72XX is in power-saving mode on startup,
-   we have to do a wakeup call
-   */
-  lc.shutdown(0,false);
-  /* Set the brightness to a medium values */
-  lc.setIntensity(0,8);
-  /* and clear the display */
-  lc.clearDisplay(0);
+    The MAX72XX is in power-saving mode on startup,
+    we have to do a wakeup call
+  */
+  lc.shutdown(0, false);
+  lc.setIntensity(0, 8);  /* Set the brightness to a medium values */
+  lc.clearDisplay(0);     /* and clear the display */
 
-  multiplexer.select(6);
-  
-  
-  // flip screen, if required
-  // u8g.setRot180();
+  delay(10);
 
-  // assign default color value
-  if ( u8g.getMode() == U8G_MODE_R3G3B2 ) {
-    u8g.setColorIndex(255);     // white
-  } else
-  if ( u8g.getMode() == U8G_MODE_GRAY2BIT ) {
-    u8g.setColorIndex(3);         // max intensity
-  } else
-  if ( u8g.getMode() == U8G_MODE_BW ) {
-    u8g.setColorIndex(1);         // pixel on
-  } else
-  if ( u8g.getMode() == U8G_MODE_HICOLOR ) {
-    u8g.setHiColorByRGB(255,255,255);
-  }
-//  pinMode(8, OUTPUT);
+  oled.init();                      // Initialze SSD1306 OLED display
+  oled.clearDisplay();              // Clear screen
+  oled.setTextXY(0,0);              // Set cursor position, start of line 0
+  oled.putString("aisufsdo");
+  oled.setTextXY(1,0);              // Set cursor position, start of line 1
+  oled.putString("asdfgb");
+  oled.setTextXY(2,0);              // Set cursor position, start of line 2
+  oled.putString("----");
+  oled.setTextXY(2,10);             // Set cursor position, line 2 10th character
+  oled.putString("CA");
+//  multiplexer.select(6);
+  //  pinMode(8, OUTPUT);
 }
 
 void loop(void) {
-//  if(Update == ON) {
-//    TimeUpdate();
-//    tm1637.display(TimeDisp);
-//    writeArduinoOnMatrix();
-//  }
-//  
-//  multiplexer.select(6);
-//  // picture loop
-//  u8g.firstPage();  
-//  do {
-//    draw();
-//  } while( u8g.nextPage() );
-  
-  multiplexer.select(8);
-  uint16_t c = compass.get();
-  Serial.print("  Compass: "); Serial.print(c);
-  Serial.println();
-  delay(500);
-//  motor.set(100, 100);      // set motor speed (left right)
-//  buttonTest();
-}
+  static bool p = true;
 
+  if (Update == ON) {
+    TimeUpdate();
+    tm1637.display(TimeDisp);
+    writeArduinoOnMatrix();
+
+    multiplexer.select(2);
+    p = !p;
+
+    multiplexer.select(8);
+    uint16_t c = compass.get();
+    Serial.print("  Compass: "); Serial.print(c);
+    Serial.println();
+  }
+  delay(1);
+  //  motor.set(100, 100);      // set motor speed (left right)
+  //  buttonTest();
+}
 
 
 void buttonTest(void) {
@@ -104,19 +90,8 @@ void buttonTest(void) {
   Serial.print(" ");
   Serial.println();
 }
-
-
-
 /* we always wait a bit between updates of the display */
-unsigned long delaytime=500;
-
-void draw(void) {
-  // graphic commands to redraw the complete screen should be placed here  
-  u8g.setFont(u8g_font_unifont);
-  //u8g.setFont(u8g_font_osb21);
-  u8g.drawStr( 0, 22, "ujyftyuk");
-}
-
+unsigned long delaytime = 500;
 
 void TimingISR(void) {
   halfsecond ++;
@@ -125,9 +100,9 @@ void TimingISR(void) {
     second ++;
     if (second == 60) {
       minute ++;
-      if(minute == 60) {
+      if (minute == 60) {
         hour ++;
-        if(hour == 24)
+        if (hour == 24)
           hour = 0;
         minute = 0;
       }
@@ -135,12 +110,12 @@ void TimingISR(void) {
     }
     halfsecond = 0;
   }
- // Serial.println(second);
+  // Serial.println(second);
   ClockPoint = (~ClockPoint) & 0x01;
 }
 
 void TimeUpdate(void) {
-  if(ClockPoint)  tm1637.point(POINT_ON);
+  if (ClockPoint)  tm1637.point(POINT_ON);
   else            tm1637.point(POINT_OFF);
   TimeDisp[0] = hour / 10;
   TimeDisp[1] = hour % 10;
@@ -150,28 +125,21 @@ void TimeUpdate(void) {
 }
 
 
-
 /* here is the data for the word "Arduino" */
-byte a[5]={B01111110,B10001000,B10001000,B10001000,B01111110};
-byte r[5]={B00111110,B00010000,B00100000,B00100000,B00010000};
-byte d[5]={B00011100,B00100010,B00100010,B00010010,B11111110};
-byte u[5]={B00111100,B00000010,B00000010,B00000100,B00111110};
-byte i[5]={B00000000,B00100010,B10111110,B00000010,B00000000};
-byte n[5]={B00111110,B00010000,B00100000,B00100000,B00011110};
-byte o[5]={B00011100,B00100010,B00100010,B00100010,B00011100};
+byte a[5] = {B01111110, B10001000, B10001000, B10001000, B01111110};
+byte r[5] = {B00111110, B00010000, B00100000, B00100000, B00010000};
+byte d[5] = {B00011100, B00100010, B00100010, B00010010, B11111110};
+byte u[5] = {B00111100, B00000010, B00000010, B00000100, B00111110};
+byte i[5] = {B00000000, B00100010, B10111110, B00000010, B00000000};
+byte n[5] = {B00111110, B00010000, B00100000, B00100000, B00011110};
+byte o[5] = {B00011100, B00100010, B00100010, B00100010, B00011100};
 
-byte *arduino[7] = {a,r,d,u,i,n,o};
-
+byte *arduino[7] = {a, r, d, u, i, n, o};
 byte charIdx = 0;
-/*
- This method will display the characters for the
- word "Arduino" one after the other on the matrix. 
- (you need at least 5x7 leds to see the whole chars)
- */
- 
-void writeArduinoOnMatrix() {
-  for (byte i=0; i<5; i++)
-    lc.setRow(0,i,arduino[charIdx][i]);
+
+void writeArduinoOnMatrix(void) {
+  for (byte i = 0; i < 5; i++)
+    lc.setRow(0, i, arduino[charIdx][i]);
   charIdx++;
-  if (charIdx>=7)charIdx = 0;
+  if (charIdx >= 7)charIdx = 0;
 }
