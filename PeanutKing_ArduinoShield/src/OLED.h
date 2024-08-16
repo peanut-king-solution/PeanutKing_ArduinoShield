@@ -18,6 +18,9 @@
   information.  All text above must be included in any redistribution.
 */
 
+
+/* currently disabled
+
 #ifndef OLED_H
 #define OLED_H
 
@@ -134,3 +137,4 @@ class ACROBOTIC_SSD1306 {
 extern ACROBOTIC_SSD1306 oled;  // ACROBOTIC_SSD1306 object
 
 #endif
+*/

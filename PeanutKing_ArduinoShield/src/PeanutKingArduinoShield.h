@@ -17,6 +17,8 @@
 #include "SevenSegment.h"
 #include "LedMatrix.h" 
 #include "U8glib.h"
+#include <Servo.h>
+#include <Accelerometer.h>
 
 #pragma once
 #ifndef PeanutKingArduinoShield_H
@@ -44,7 +46,17 @@
 
 // PeanutkingCompass
 // oled
+// servo
+
 // multiplexer
+#define C8 8
+#define C7 7
+#define C6 6
+#define C5 5
+#define C4 4
+#define C3 3
+#define C2 2
+#define C1 1
 // PeanutkingColorSensor
 // Ultrasound
 #define D8 8
@@ -98,7 +110,11 @@ class Multiplexer {
     mulPlxHandle = gIIC->RegisterDevice(TCAADDR, 1, IICIT::Speed::SLOW);
   }
   void select(uint8_t i) {
-    if (i > 9) return;
+    if (i >= 9) {
+      Serial.begin(9600);
+      Serial.print("non exist pin selected");
+      return;
+    }
     uint8_t message[1] = { 0x01 << (idx[i]) };
     uint8_t _status = gIIC->Write(mulPlxHandle, message, 1);
     if (_status != 0) {
@@ -233,7 +249,10 @@ class Compass {
   Compass(int8_t _addr) : addr(_addr) {
     cpsHandle = gIIC->RegisterDevice(addr, 1, IICIT::Speed::SLOW);
   }
-  float get(uint8_t cmd = 0x55) {
+  float get(uint8_t index=NULL, uint8_t cmd = 0x55) {
+    if(index!=NULL ){
+      multiplexer.select(index);
+    }
     uint16_t temp=0;
     uint8_t _status;
 
@@ -266,7 +285,7 @@ class Compass {
 // getUltrasonic --------------------------------------------------
 class Ultrasonic {
  public:
-  Ultrasonic(void):txPin(0), rxPin(0){
+  Ultrasonic(void):txPin(NULL), rxPin(NULL){
 
   }
   Ultrasonic(uint8_t tx, uint8_t rx) :
@@ -276,38 +295,27 @@ class Ultrasonic {
   }
 
   //for PeanutKingArduinoShield object internally use, need tx pin parameter
-  uint16_t get(uint16_t pin){
-    uint16_t rxpin;
-    switch(pin){
-      case 13:
-      rxpin=12;
-        break;
-      case 12:
-      rxpin=8;
-        break;
-      case 8:
-      rxpin=7;
-        break;
-      case 7:
-      rxpin=5;
-        break;
-      case 5:
-      rxpin=4;
-      break;
-      case 4:
-      rxpin=3;
-      break;
-      default:
-      return -1;
+  uint16_t get(uint16_t tx_pin,uint16_t rx_pin=NULL){
+    if(rx_pin==NULL){
+      switch(tx_pin){
+        case 13: rx_pin=12; break;
+        case 12: rx_pin=8;  break;
+        case 8:  rx_pin=7;  break;
+        case 7:  rx_pin=5;  break;
+        case 5:  rx_pin=4;  break;
+        case 4:  rx_pin=3;  break;
+        default:
+          return -1;
+      }
     }
-    pinMode(pin, OUTPUT);
-    pinMode(rxpin, INPUT);
-    digitalWrite(pin, LOW);
+    pinMode(tx_pin, OUTPUT);
+    pinMode(rx_pin, INPUT);
+    digitalWrite(tx_pin, LOW);
     delayMicroseconds(2);
-    digitalWrite(pin, HIGH);
+    digitalWrite(tx_pin, HIGH);
     delayMicroseconds(10);
-    digitalWrite(pin, LOW);
-    return _cal_distance(pulseIn(rxpin, HIGH));
+    digitalWrite(tx_pin, LOW);
+    return _cal_distance(pulseIn(rx_pin, HIGH));
   }
 
   //for ultrasonic object externally init and use, Tx,Rx pin are init ed at object initialization
@@ -374,33 +382,84 @@ class PeanutKingArduinoShield {
   CompoundEye compoundEye;
   Ultrasonic ultrasonic;
   Motor motor;
+  Servo  servoA0,servoA1,servoA2,servoA3,servoD3,servoD4,servoD5,servoD7,servoD8,servo12,servo13;
+  //Servo servolist[11]={servoA0,servoA1,servoA2,servoA3,servoD3,servoD4,servoD5,servoD7,servoD8,servo12,servo13};
+  Accelerometer accelerometer;
   U8GLIB_SSD1306_128X64 oled;
   PeanutKingArduinoShield(void) {
     Serial.begin(115200);
     U8GLIB_SSD1306_128X64 oled(U8G_I2C_OPT_NONE|U8G_I2C_OPT_DEV_0);
   }
 
+  //Multiplexer
+  void pinSelect(uint8_t);
+
+  //ColorSensor
   hsl_t   readhsl(uint8_t pin_number);
   color_t readcolor(uint8_t pin_number);
   rgbc_t  readrgb(uint8_t pin_number);
-  uint16_t compassRead(void);
-  void compoundEyeRead();
-  int compoundEyeRead(uint8_t);
-  uint16_t getButtonA(void);
-  uint16_t getButtonB(void);
-  uint16_t getButtonC(void);
-  void setMotor(int16_t,int16_t);
-  uint16_t getUltrasonic(uint16_t pin_number);
-  //void oledPrintInteger(int num,uint8_t space=0,uint8_t line=0);
-  //void oledPrintString(String string,uint8_t line=0);
 
-  //student need to pass a function as a parameter to update oled screen content.
+  //Compass
+  uint16_t compassRead(uint8_t index=NULL, uint8_t cmd=0x55);                   //index for multiplexer choice (optional) C1 to C8
+                                                                                //cmd normally fixed at 0x55 to take yaw data only
+
+  //CompoundEye                 
+  void compoundEyeRead(void);                                                   //for compatibility,better keep this
+  void compoundEyeReadAll(uint8_t index=NULL);                                  //functionally identical to compoundEyeRead(void) but provided multiplexer(optional)
+  int compoundEyeRead(uint8_t data_id,uint8_t index=NULL);                      //get data by data id, provided multiplexer(optional)
+
+  //Button                  
+  uint16_t getButtonA(void);                                                    //simply get button boolean value, 0:OFF; 1:ON
+  uint16_t getButtonB(void);                  
+  uint16_t getButtonC(void);                  
+
+  //Motor                 
+  void setMotor(int16_t left ,int16_t right);                                   //set left and right motor from -255 to 255
+
+  //Ultrasonic
+  uint16_t getUltrasonic(uint16_t tx_pin_number,uint16_t rx_pin_number=NULL);   //get ultrasonic by input trig pin as tx_pin_number
+                                                                                //in most case, rx_pin_number can be ignore as trig and echo pin must be together
+                                                                                //rx_pin_number are for situation that student got wrong wire that shifted trig and echo pin
+
+  //Servo
+  uint16_t setServo(uint16_t pin_number,uint16_t servo_degree);                 //directly drive servo by input pin_number and servo_degree
+
+  //Accelerometer
+  private:
+  bool inited[9];                                                               //main I2C + multiplexer 1 to 8 (optional)
+  bool isGyroscopeInited(uint16_t index=NULL){                                  //check for init of mpu6050, init it by index if not inited 
+    if(index!=NULL){                                                            //return false if it has not inited yet and just inited 
+      multiplexer.select(index); 
+      if(!inited[index]){
+        inited[index]=1;
+        accelerometer.initMPU6050();
+      }
+      return false;
+    }else if((index==NULL || index==0) && !inited[0]){
+      inited[index]=1;
+      accelerometer.initMPU6050();
+      return false;
+    }
+    return true;
+  }
+  public:                                                                       //usage same as microbit library except no need to init MPU6050
+                                                                                //axis: axis_x/axis_y/axis_z
+  float getGyroscope(axisXYZ axis, gyroSen sensitivity,uint8_t index=NULL);     //gyroSen:range_250_dps/range_500_dps/range_1000_dps/range_2000_dps
+  float getAxisRotation(axisXYZ axis, accelSen sensitivity,uint8_t index=NULL); //accelSen: range_2_g/range_4_g/range_8_g/range_16_g
+  float getAxisAcceleration(axisXYZ axis, accelSen sensitivity,uint8_t index=NULL);
+
+
+                  
+  //Oled                  
+                                                                                //student need to pass a update function as a parameter to update oled screen content
   void oledUpdate(void (*updateFun)(void)){
     oled.firstPage();
     do{
+      oled.setPrintPos(0,10);        //pre set pos at (0,10)
       oled.setFont(u8g_font_unifont);// in case student didn't set font
       updateFun();
     }while(oled.nextPage());
   }
+
 };
 #endif

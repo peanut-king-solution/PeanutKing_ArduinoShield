@@ -28,6 +28,10 @@ void I2CRead(IICIT::Handle handle, uint8_t *data, uint8_t length) {
   // }
 }
 
+void PeanutKingArduinoShield::pinSelect(uint8_t index){
+  multiplexer.select(index);
+}
+
 void rgb2hsl(rgbc_t *rgbc, hsl_t *hsl, rgb_t *rgb) {
   uint8_t maxVal, minVal, difVal;
   uint8_t r = rgbc->r * 255 / rgbc->c; //[0-255]
@@ -74,6 +78,7 @@ void _statusError(const uint8_t _status) {
   Serial.println(_status);
 }
 
+//ColorSensor
 color_t PeanutKingArduinoShield::readcolor(uint8_t index) {
   return rgbcolor.getcolor(index);
 }
@@ -86,18 +91,33 @@ rgbc_t PeanutKingArduinoShield::readrgb(uint8_t index) {
   return rgbcolor.getrgbc(index);
 }
 
-uint16_t PeanutKingArduinoShield::compassRead(void) {
-  return compass.get();
+//Compass
+//get compass with (optional) multiplexer index and (optional) cmd, otherwise get by main I2C and commend=0x55
+uint16_t PeanutKingArduinoShield::compassRead(uint8_t index=NULL, uint8_t cmd=0x55) {
+  return compass.get(index,cmd);
 }
 
-int PeanutKingArduinoShield::compoundEyeRead(uint8_t data_id){
+//CompoundEye
+//get compound eye value with (optional) multiplexer index, otherwise get by main I2C
+int PeanutKingArduinoShield::compoundEyeRead(uint8_t data_id,uint8_t index=NULL){
+  if(index!=NULL){
+    multiplexer.select(index);
+  }
   return compoundEye.compoundEyeRead(data_id);
 }
-
+//serial print ALL compound eye value
 void PeanutKingArduinoShield::compoundEyeRead(){
   compoundEye.compoundEyeRead();
 }
+//serial print ALL compound eye value with (optional) multiplexer index
+void PeanutKingArduinoShield::compoundEyeReadAll(uint8_t index=NULL){
+  if(index!=NULL){
+    multiplexer.select(index);
+  }
+  compoundEye.compoundEyeRead();
+}
 
+//Button
 uint16_t PeanutKingArduinoShield::getButtonA(void){
   return button.get(0);
 }
@@ -110,13 +130,84 @@ uint16_t PeanutKingArduinoShield::getButtonC(void){
   return button.get(2);
 }
 
+//Motor
 void PeanutKingArduinoShield::setMotor(int16_t left,int16_t right){
   motor.set(left,right);
 }
 
-uint16_t PeanutKingArduinoShield::getUltrasonic(uint16_t pin_number){
-  return ultrasonic.get(pin_number);
+//Ultrasonic
+uint16_t PeanutKingArduinoShield::getUltrasonic(uint16_t tx_pin_number,uint16_t rx_pin_number=NULL){
+  //in most case, rx_pin_number can be ignore as trig and echo pin must be together
+  //rx_pin_number are for situation that student got wrong wire that shifted trig and echo pin
+  return ultrasonic.get(tx_pin_number,rx_pin_number);
 }
+
+//Servo
+uint16_t PeanutKingArduinoShield::setServo(uint16_t pin_number,uint16_t servo_degree){
+  switch (pin_number){
+    case A0:
+      servoA0.attach(A0);
+      servoA0.write(servo_degree);
+      break;
+    case A1:
+      servoA1.attach(A1);
+      servoA1.write(servo_degree);
+      break;
+    case A2:
+      servoA2.attach(A2);
+      servoA2.write(servo_degree);
+      break;
+    case A5:
+      servoA3.attach(A5);
+      servoA3.write(servo_degree);
+      break;
+    case D3:
+      servoD3.attach(D3);
+      servoD3.write(servo_degree);
+      break;
+    case D4:
+      servoD4.attach(D4);
+      servoD4.write(servo_degree);
+      break;
+    case D5:
+      servoD5.attach(D5);
+      servoD5.write(servo_degree);
+      break;
+    case D7:
+      servoD7.attach(D7);
+      servoD7.write(servo_degree);
+      break;
+    case D8:
+      servoD8.attach(D8);
+      servoD8.write(servo_degree);
+      break;
+    case 12:
+      servo12.attach(12);
+      servo12.write(servo_degree);
+      break;
+    case 13:
+      servo13.attach(13);
+      servo13.write(servo_degree);
+      break;
+    default:
+      return -1;
+  }
+}
+//Accelerometer
+float PeanutKingArduinoShield::getGyroscope(axisXYZ axis, gyroSen sensitivity,uint8_t index=NULL){\
+  isGyroscopeInited(index);
+  return accelerometer.gyroscope(axis, sensitivity);
+}
+float PeanutKingArduinoShield::getAxisRotation(axisXYZ axis, accelSen sensitivity,uint8_t index=NULL){
+  isGyroscopeInited(index);
+  return accelerometer.axisRotation(axis, sensitivity);
+}
+float PeanutKingArduinoShield::getAxisAcceleration(axisXYZ axis, accelSen sensitivity,uint8_t index=NULL){
+  isGyroscopeInited(index);
+  return accelerometer.axisAcceleration(axis, sensitivity);
+}
+
+
 /*
 void PeanutKingArduinoShield::oledPrintInteger(int num,uint8_t space,uint8_t line){//print line
   String string=String(num);

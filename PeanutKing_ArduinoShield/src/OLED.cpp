@@ -17,7 +17,7 @@
   Released under the MIT license. Please check LICENSE.txt for more
   information.  All text above must be included in any redistribution.
 */
-
+/*
 #include "OLED.h"
 
 void ACROBOTIC_SSD1306::init(void) {
@@ -315,3 +315,4 @@ void ACROBOTIC_SSD1306::setInverseDisplay() {
 }
 
 ACROBOTIC_SSD1306 oled; // Pre-instantiate object
+*/

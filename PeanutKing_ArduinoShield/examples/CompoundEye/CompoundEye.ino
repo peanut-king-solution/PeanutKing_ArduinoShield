@@ -9,7 +9,7 @@ void setup() {
 
 void loop() {
 
-  robot.compoundEyeRead();                  // this will serial print all value from Compound Eye, only for debug
+  robot.compoundEyeReadAll();               // this will serial print all value from Compound Eye, only for debugging
 
   value = robot.compoundEyeRead(0);         // get the value of eye no 1
   value = robot.compoundEyeRead(1);         // get the value of eye no 2

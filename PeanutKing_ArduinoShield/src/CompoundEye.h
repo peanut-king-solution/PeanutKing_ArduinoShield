@@ -42,7 +42,7 @@ class CompoundEye {
   int store[compound_eye_data_total];
   void init(void);
   void compoundEyeRead(void);
-  int compoundEyeRead( uint8_t data_id);
+  int compoundEyeRead(uint8_t data_id);
   private:
   IICIT::Handle compoundEyeHandle;
 };

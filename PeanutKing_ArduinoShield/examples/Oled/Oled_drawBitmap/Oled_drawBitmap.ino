@@ -11,19 +11,20 @@ void setup() {
 void oledDraw(){                                        // declare update function for oled screen content update
                                                         // the function is need to accept void parameter and return void
 
-  robot.oled.drawBitmapP( 0,0, 16,64,PeanutKing_Logo);  // 
-                                                        // representing 3 edges of triangle
-                                                        // in this case,
-                                                        // the triangle will have point 0 at (14,9)
+  robot.oled.drawBitmapP(0,0, 16,64,PeanutKing_Logo);   // draw the bitmap at (x=0,y=0),
+                                                        // 16, the number of byte(8 bits) in width,
+                                                        // 16*8=128 which is bitmap width
 
-} 
- 
+                                                        // 64, the height of the bitmap
+                                                        // PeanutKing_Logo, the bitmap array
+}
+
 void loop() { 
      
-  robot.oledUpdate(oledDraw);                   // pass the update function to adapter for oled update
+  robot.oledUpdate(oledDraw);                           // pass the update function to adapter for oled update
 } 
 
-const unsigned char PeanutKing_Logo [] PROGMEM = {
+const unsigned char PeanutKing_Logo [] PROGMEM = {      //the bitmap array
 	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
 	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
 	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
