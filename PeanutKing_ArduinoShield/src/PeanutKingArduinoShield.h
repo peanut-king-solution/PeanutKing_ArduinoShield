@@ -398,6 +398,14 @@ class PeanutKingArduinoShield {
   hsl_t   readhsl(uint8_t pin_number);
   color_t readcolor(uint8_t pin_number);
   rgbc_t  readrgb(uint8_t pin_number);
+  color_t readAdvColor(hsl_t hsl) {
+    if      ( hsl.l < 80 && hsl.s < 60  ) return black;
+    else if ( hsl.h < 80 && hsl.h > 50)   return yellow;
+    else if ( hsl.h > 150 && hsl.s < 30 && hsl.l > 60 )  return white;
+    else if ( hsl.h < 15 || hsl.h > 315 ) return red;
+    else if ( hsl.h < 150 )               return green;
+    else                                  return blue;
+  }
 
   //Compass
   uint16_t compassRead(uint8_t index=NULL, uint8_t cmd=0x55);                   //index for multiplexer choice (optional) C1 to C8
