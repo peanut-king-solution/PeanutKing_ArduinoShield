@@ -17,7 +17,7 @@
 #include "SevenSegment.h"
 #include "LedMatrix.h" 
 #include "U8glib.h"
-#include <Servo.h>
+//#include <Servo.h>
 #include <Accelerometer.h>
 
 #pragma once
@@ -68,9 +68,9 @@
 typedef enum { front = 0, left, right, back } sensorNum;
 
 typedef enum {
-  black=0,  white,   grey,
+  black=0,  white,  
   red,      green,   blue, 
-  yellow,   cyan,    magenta
+  yellow
 } color_t;
 
 typedef enum {buttonA=0,buttonB,buttonC} button_t;
@@ -136,25 +136,31 @@ class ColorSensor {
     clrSnrHandle = gIIC->RegisterDevice(0x11, 1, IICIT::Speed::SLOW);
   }
 
-  uint8_t getcolor(uint8_t index) {
+  uint8_t getcolor(uint8_t index=NULL) {
     uint8_t cmd = 0x01, ans;
-    multiplexer.select(index);
+    if(index!=NULL){
+      multiplexer.select(index);
+    }
     I2CSend(clrSnrHandle, &cmd, 1);
     I2CRead(clrSnrHandle, &ans, 1);
     return ans;
   }
-  rgb_t getrgb(uint8_t index ) {
+  rgb_t getrgb(uint8_t index=NULL) {
     uint8_t cmd = 0x08;
     rgb_t rgb;
-    multiplexer.select(index);
+    if(index!=NULL){
+      multiplexer.select(index);
+    }
     I2CSend(clrSnrHandle, &cmd, 1);
     I2CRead(clrSnrHandle, (uint8_t *)&rgb, 3);
     return rgb;
   }
-  hsl_t gethsl(uint8_t index ) {
+  hsl_t gethsl(uint8_t index=NULL) {
     uint8_t cmd = 0x03;
     hsl_t hsl;
-    multiplexer.select(index);
+    if(index!=NULL){
+      multiplexer.select(index);
+    }
     I2CSend(clrSnrHandle, &cmd, 1);
     I2CRead(clrSnrHandle, (uint8_t *)&hsl, 4);
   // hsl->h = buff[0]|buff[1]<<8;
@@ -162,12 +168,13 @@ class ColorSensor {
   // hsl->l = buff[3];
     return hsl;
   }
-  rgbc_t getrgbc(uint8_t index ) {
+  rgbc_t getrgbc(uint8_t index=NULL) {
     uint8_t cmd = 0x02;
     uint8_t _status;
     rgbc_t rgbc;
-
-    multiplexer.select(index);
+    if(index!=NULL){
+      multiplexer.select(index);
+    }
     I2CSend(clrSnrHandle, &cmd, 1);
     I2CRead(clrSnrHandle, (uint8_t *)&rgbc, 16);
 
@@ -372,6 +379,7 @@ class Motor {
 
   const uint8_t dirPin[2], dir2Pin[2];
 };
+
 // PeanutKingArduinoShield -----------------------------------------------------
 class PeanutKingArduinoShield {
  public:
@@ -382,8 +390,7 @@ class PeanutKingArduinoShield {
   CompoundEye compoundEye;
   Ultrasonic ultrasonic;
   Motor motor;
-  Servo  servoA0,servoA1,servoA2,servoA3,servoD3,servoD4,servoD5,servoD7,servoD8,servo12,servo13;
-  //Servo servolist[11]={servoA0,servoA1,servoA2,servoA3,servoD3,servoD4,servoD5,servoD7,servoD8,servo12,servo13};
+  //Servo  servoA0,servoA1,servoA2,servoA3,servoD3,servoD4,servoD5,servoD7,servoD8,servo12,servo13;
   Accelerometer accelerometer;
   U8GLIB_SSD1306_128X64 oled;
   PeanutKingArduinoShield(void) {
@@ -394,18 +401,23 @@ class PeanutKingArduinoShield {
   //Multiplexer
   void pinSelect(uint8_t);
 
-  //ColorSensor
-  hsl_t   readhsl(uint8_t pin_number);
-  color_t readcolor(uint8_t pin_number);
-  rgbc_t  readrgb(uint8_t pin_number);
-  color_t readAdvColor(hsl_t hsl) {
-    if      ( hsl.l < 80 && hsl.s < 60  ) return black;
-    else if ( hsl.h < 80 && hsl.h > 50)   return yellow;
-    else if ( hsl.h > 150 && hsl.s < 30 && hsl.l > 60 )  return white;
-    else if ( hsl.h < 15 || hsl.h > 315 ) return red;
-    else if ( hsl.h < 150 )               return green;
-    else                                  return blue;
-  }
+  //ColorSensor //current color sensor providing incorrect rgb value in percentage and worng hsl, and it related to firmware
+  //if the firmware are already updated, please use the function in next column //  |
+  hsl_t   readhsl(uint8_t pin_number=NULL);                                     //  |            
+  color_t readcolor(uint8_t pin_number=NULL);                                   //  |            
+  rgb_t  readrgb(uint8_t pin_number=NULL);                                      //  |            
+  rgbc_t  readrgbc(uint8_t pin_number=NULL);                                    //  |            
+  color_t readAdvColor(hsl_t hsl) {                                             //  |            
+    if      ( hsl.l < 80 && hsl.s < 60  ) return black;                         //  |            
+    else if ( hsl.h < 80 && hsl.h > 50)   return yellow;                        //  |            
+    else if ( hsl.h > 150 && hsl.s < 30 && hsl.l > 60 )  return white;          //  |            
+    else if ( hsl.h < 15 || hsl.h > 315 ) return red;                           //  |            
+    else if ( hsl.h < 150 )               return green;                         //  |            
+    else                                  return blue;                          //  |            
+  }                                                                             //  V this                  
+  //ColorSensor for updated firmware that provided correct rgb in 0 - 255 and correct hsl
+  hsl_t   gethsl(uint8_t pin_number=NULL);
+  rgb_t  getrgb(uint8_t pin_number=NULL);
 
   //Compass
   uint16_t compassRead(uint8_t index=NULL, uint8_t cmd=0x55);                   //index for multiplexer choice (optional) C1 to C8
@@ -430,7 +442,17 @@ class PeanutKingArduinoShield {
                                                                                 //rx_pin_number are for situation that student got wrong wire that shifted trig and echo pin
 
   //Servo
-  uint16_t setServo(uint16_t pin_number,uint16_t servo_degree);                 //directly drive servo by input pin_number and servo_degree
+  //uint16_t setServo(uint16_t pin_number,uint16_t servo_degree);               //directly drive servo by input pin_number and servo_degree
+                                                                                //curretly not included because
+                                                                                //servo library conflict with motor that pin 9, pin 10 pwm control 
+                                                                                //took as timer by servo lib, when motor control by pin 9 and pin 10
+                                                                                //method1:
+                                                                                //set the timer only when servo enable and reset the timer immediately after
+                                                                                //the servo reach the settled angle
+                                                                                //method2:
+                                                                                //software timer
+                                                                                //the pwm control for servo motor only need 50hz so a async task loop with 0.02 interval
+                                                                                //should be ok for controllment too
 
   //Accelerometer
   private:
@@ -456,15 +478,14 @@ class PeanutKingArduinoShield {
   float getAxisRotation(axisXYZ axis, accelSen sensitivity,uint8_t index=NULL); //accelSen: range_2_g/range_4_g/range_8_g/range_16_g
   float getAxisAcceleration(axisXYZ axis, accelSen sensitivity,uint8_t index=NULL);
 
-
                   
   //Oled                  
                                                                                 //student need to pass a update function as a parameter to update oled screen content
   void oledUpdate(void (*updateFun)(void)){
     oled.firstPage();
     do{
-      oled.setPrintPos(0,10);        //pre set pos at (0,10)
-      oled.setFont(u8g_font_unifont);// in case student didn't set font
+      oled.setPrintPos(0,10);                                                   //pre set pos at (0,10)
+      oled.setFont(u8g_font_unifont);                                           //in case student didn't set font
       updateFun();
     }while(oled.nextPage());
   }
