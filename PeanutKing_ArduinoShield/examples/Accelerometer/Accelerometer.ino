@@ -20,7 +20,7 @@ void loop() {
     y_Rotation=robot.getAxisRotation(axis_y,range_4_g);         //4 choices of sensitivity : range_2_g/range_4_g/range_8_g/range_16_g
     z_Rotation=robot.getAxisRotation(axis_z,range_8_g);                                       
 
-    x_Gyroscope=robot.getGyroscope(axis_x,range_500_dps);       //get gyroscope value by input axis and sensitivity 
+    x_Gyroscope=robot.getGyroscope(axis_x,range_500_dps);       //get gyroscope value by input axis and sensitivity     
     y_Gyroscope=robot.getGyroscope(axis_y,range_1000_dps);      //4 choices of sensitivity : range_250_dps/range_500_dps/range_1000_dps/range_2000_dps   
     z_Gyroscope=robot.getGyroscope(axis_z,range_2000_dps);      //dps: degree per second
 
