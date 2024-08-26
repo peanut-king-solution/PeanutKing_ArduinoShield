@@ -32,7 +32,7 @@ void PeanutKingArduinoShield::pinSelect(uint8_t index){
   multiplexer.select(index);
 }
 
-void rgb2hsl(rgbc_t *rgbc, hsl_t *hsl, rgb_t *rgb) {
+void rgb2hsl(rgbc_t *rgbc, hsl_t *hsl, rgb_t *rgb) { 
   uint8_t maxVal, minVal, difVal;
   uint8_t r = rgbc->r * 255 / rgbc->c; //[0-255]
   uint8_t g = rgbc->g * 255 / rgbc->c;
@@ -46,7 +46,7 @@ void rgb2hsl(rgbc_t *rgbc, hsl_t *hsl, rgb_t *rgb) {
   minVal = min3v(r, g, b);
   difVal = maxVal - minVal;
 
-  hsl->l = (maxVal + minVal) / 2; // [0-255]
+  hsl->l = (maxVal + minVal) / 2*100/255 +0.5; // [0-255]
 
   if (maxVal == minVal) {         // if max is 0, then r = g = b = 0
     hsl->h = 0;                   // s = 0
@@ -67,9 +67,9 @@ void rgb2hsl(rgbc_t *rgbc, hsl_t *hsl, rgb_t *rgb) {
     }
 
     if (hsl->l <= 50)
-      hsl->s = difVal * 100 / (maxVal + minVal); //[0-100]
+      hsl->s = difVal * 100 / (maxVal + minVal)+0.5; //[0-100]
     else
-      hsl->s = difVal * 100 / (200 - (maxVal + minVal));
+      hsl->s = difVal * 100 / (510 - (maxVal + minVal))+0.5;
   }
 }
 
@@ -79,16 +79,40 @@ void _statusError(const uint8_t _status) {
 }
 
 //ColorSensor
-color_t PeanutKingArduinoShield::readcolor(uint8_t index) {
+color_t PeanutKingArduinoShield::readcolor(uint8_t index=NULL) {
   return rgbcolor.getcolor(index);
 }
 
-hsl_t PeanutKingArduinoShield::readhsl(uint8_t index) {
+hsl_t PeanutKingArduinoShield::readhsl(uint8_t index=NULL) {
+  //re cal the hsl 
+  rgbc_t rgbc = rgbcolor.getrgbc(index);
+  rgb_t rgb;
+  hsl_t hsl;
+  rgb2hsl(&rgbc,&hsl,&rgb);
+  return hsl;
+}
+
+rgbc_t PeanutKingArduinoShield::readrgbc(uint8_t index=NULL) {
+  return rgbcolor.getrgbc(index);
+}
+
+rgb_t PeanutKingArduinoShield::readrgb(uint8_t index=NULL) {
+  //re cal the rgb 
+  rgbc_t rgbc = rgbcolor.getrgbc(index);
+  rgb_t rgb;
+  rgb.r=rgbc.r*255/rgbc.c;
+  rgb.g=rgbc.g*255/rgbc.c;
+  rgb.b=rgbc.b*255/rgbc.c;
+  return rgb;
+}
+
+//ColorSensor for updated firmware
+hsl_t PeanutKingArduinoShield::gethsl(uint8_t index=NULL) {
   return rgbcolor.gethsl(index);
 }
 
-rgbc_t PeanutKingArduinoShield::readrgb(uint8_t index) {
-  return rgbcolor.getrgbc(index);
+rgb_t PeanutKingArduinoShield::getrgb(uint8_t index=NULL) {
+  return rgbcolor.getrgb(index);
 }
 
 //Compass
@@ -142,57 +166,58 @@ uint16_t PeanutKingArduinoShield::getUltrasonic(uint16_t tx_pin_number,uint16_t 
   return ultrasonic.get(tx_pin_number,rx_pin_number);
 }
 
-//Servo
-uint16_t PeanutKingArduinoShield::setServo(uint16_t pin_number,uint16_t servo_degree){
-  switch (pin_number){
-    case A0:
-      servoA0.attach(A0);
-      servoA0.write(servo_degree);
-      break;
-    case A1:
-      servoA1.attach(A1);
-      servoA1.write(servo_degree);
-      break;
-    case A2:
-      servoA2.attach(A2);
-      servoA2.write(servo_degree);
-      break;
-    case A5:
-      servoA3.attach(A5);
-      servoA3.write(servo_degree);
-      break;
-    case D3:
-      servoD3.attach(D3);
-      servoD3.write(servo_degree);
-      break;
-    case D4:
-      servoD4.attach(D4);
-      servoD4.write(servo_degree);
-      break;
-    case D5:
-      servoD5.attach(D5);
-      servoD5.write(servo_degree);
-      break;
-    case D7:
-      servoD7.attach(D7);
-      servoD7.write(servo_degree);
-      break;
-    case D8:
-      servoD8.attach(D8);
-      servoD8.write(servo_degree);
-      break;
-    case 12:
-      servo12.attach(12);
-      servo12.write(servo_degree);
-      break;
-    case 13:
-      servo13.attach(13);
-      servo13.write(servo_degree);
-      break;
-    default:
-      return -1;
-  }
-}
+////Servo
+//uint16_t PeanutKingArduinoShield::setServo(uint16_t pin_number,uint16_t servo_degree){
+//  switch (pin_number){
+//    case A0:
+//      servoA0.attach(A0);
+//      servoA0.write(servo_degree);
+//      while(servoA0.read)
+//      break;
+//    case A1:
+//      servoA1.attach(A1);
+//      servoA1.write(servo_degree);
+//      break;
+//    case A2:
+//      servoA2.attach(A2);
+//      servoA2.write(servo_degree);
+//      break;
+//    case A5:
+//      servoA3.attach(A5);
+//      servoA3.write(servo_degree);
+//      break;
+//    case D3:
+//      servoD3.attach(D3);
+//      servoD3.write(servo_degree);
+//      break;
+//    case D4:
+//      servoD4.attach(D4);
+//      servoD4.write(servo_degree);
+//      break;
+//    case D5:
+//      servoD5.attach(D5);
+//      servoD5.write(servo_degree);
+//      break;
+//    case D7:
+//      servoD7.attach(D7);
+//      servoD7.write(servo_degree);
+//      break;
+//    case D8:
+//      servoD8.attach(D8);
+//      servoD8.write(servo_degree);
+//      break;
+//    case 12:
+//      servo12.attach(12);
+//      servo12.write(servo_degree);
+//      break;
+//    case 13:
+//      servo13.attach(13);
+//      servo13.write(servo_degree);
+//      break;
+//    default:
+//      return -1;
+//  }
+//}
 //Accelerometer
 float PeanutKingArduinoShield::getGyroscope(axisXYZ axis, gyroSen sensitivity,uint8_t index=NULL){\
   isGyroscopeInited(index);
