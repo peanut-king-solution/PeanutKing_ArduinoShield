@@ -70,7 +70,7 @@ typedef enum { front = 0, left, right, back } sensorNum;
 typedef enum {
   black=0,  white,  
   red,      green,   blue, 
-  yellow
+  yellow,cyan, purple
 } color_t;
 
 typedef enum {buttonA=0,buttonB,buttonC} button_t;
@@ -409,11 +409,25 @@ class PeanutKingArduinoShield {
   rgbc_t  readrgbc(uint8_t pin_number=NULL);                                    //  |            
   color_t readAdvColor(hsl_t hsl) {                                             //  |            
     if      ( hsl.l < 80 && hsl.s < 60  ) return black;                         //  |            
-    else if ( hsl.h < 80 && hsl.h > 50)   return yellow;                        //  |            
+    //else if ( hsl.h < 80 && hsl.h > 50)   return yellow;                      //  |            
     else if ( hsl.h > 150 && hsl.s < 30 && hsl.l > 60 )  return white;          //  |            
-    else if ( hsl.h < 15 || hsl.h > 315 ) return red;                           //  |            
-    else if ( hsl.h < 150 )               return green;                         //  |            
-    else                                  return blue;                          //  |            
+    //else if ( hsl.h < 15 || hsl.h > 315 ) return red;                         //  |            
+    //else if ( hsl.h < 150 )               return green;                       //  |            
+    //else                                  return blue;                        //  | 
+                                                                                //  |                 
+     if (hsl.h > 330 || hsl.h < 30) {                                           //  |                                     
+        return red;                                                             //  |     
+    } else if (hsl.h >= 30 && hsl.h < 90) {                                     //  |                                           
+        return yellow;                                                          //  |         
+    } else if (hsl.h >= 90 && hsl.h < 150) {                                    //  |                                             
+        return green;                                                           //  |       
+    } else if (hsl.h >= 150 && hsl.h < 210) {                                   //  |                                             
+        return blue;                                                            //  |       
+    } else if (hsl.h >= 210 && hsl.h < 270) {                                   //  |                                             
+        return blue;                                                            //  |       
+    } else if (hsl.h >= 270 && hsl.h < 330) {                                   //  |                                             
+        return purple;                                                          //  |              
+    }                                                                           //  |       
   }                                                                             //  V this                  
   //ColorSensor for updated firmware that provided correct rgb in 0 - 255 and correct hsl
   hsl_t   gethsl(uint8_t pin_number=NULL);
@@ -458,7 +472,7 @@ class PeanutKingArduinoShield {
   private:
   bool inited[9];                                                               //main I2C + multiplexer 1 to 8 (optional)
   bool isGyroscopeInited(uint16_t index=NULL){                                  //check for init of mpu6050, init it by index if not inited 
-    if(index!=NULL){                                                            //return false if it has not inited yet and just inited 
+    if(index!=NULL){                                                            //return false if it has not inited yet and it is just inited 
       multiplexer.select(index); 
       if(!inited[index]){
         inited[index]=1;
