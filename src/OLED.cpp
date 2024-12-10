@@ -17,12 +17,12 @@
   Released under the MIT license. Please check LICENSE.txt for more
   information.  All text above must be included in any redistribution.
 */
-
+/*
 #include "OLED.h"
 
 void ACROBOTIC_SSD1306::init(void) {
   oledHandle = gIIC->RegisterDevice(SSD1306_Address, 1, IICIT::Speed::SLOW);
-
+  inited=1;
   displayOff();      // display off
   sendCommand(0xA6); // Set Normal Display (default)
   displayOff();      // display off
@@ -54,6 +54,8 @@ void ACROBOTIC_SSD1306::init(void) {
   sendCommand(0x20); // Set Memory Addressing Mode
   sendCommand(0x00); // Set Memory Addressing Mode ab Horizontal addressing mode
   setFont(font8x8);
+  clearDisplay();
+  displayOn();
 }
 
 void ACROBOTIC_SSD1306::displayOn() {
@@ -63,7 +65,7 @@ void ACROBOTIC_SSD1306::displayOn() {
 void ACROBOTIC_SSD1306::displayOff() {
   sendCommand(0xAE);
 }
-
+                                       
 void ACROBOTIC_SSD1306::setFont(const uint8_t *font, bool inverse) {
   m_font = font;
   m_inverse = inverse;
@@ -104,18 +106,32 @@ void ACROBOTIC_SSD1306::setTextXY(unsigned char row, unsigned char col) {
 
 void ACROBOTIC_SSD1306::clearDisplay() {
   unsigned char i, j;
-  sendCommand(SSD1306_Display_Off_Cmd); // display off
+  sendCommand(SSD1306_Display_Off_Cmd);  //display off
   for (j = 0; j < 8; j++) {
     setTextXY(j, 0);
     for (i = 0; i < 16; i++) {
       putChar(' ');// clear all columns
     }
   }
-  sendCommand(SSD1306_Display_On_Cmd); // display on
+  sendCommand(SSD1306_Display_On_Cmd);  //display on
   setTextXY(0, 0);
 }
 
+void ACROBOTIC_SSD1306::clearline(uint8_t line) {
+  if(line<8){
+    //sendCommand(SSD1306_Display_Off_Cmd);  display off
+    setTextXY(line, 0);
+    for (uint8_t i = 0; i < 16; i++) {
+      putChar(' ');// clear all columns
+    }
+    //putString('                ');// clear all columns
+    //sendCommand(SSD1306_Display_On_Cmd);  display on
+    setTextXY(0, 0);
+  }
+}
+
 void ACROBOTIC_SSD1306::sendData(unsigned char Data) {
+  if(!inited)init();
   uint8_t txBuff[2] = {SSD1306_Data_Mode, Data};
   uint8_t _status = gIIC->Write(oledHandle, txBuff, 2);
   // m_wire->beginTransmission(SSD1306_Address); // begin I2C transmission
@@ -138,7 +154,7 @@ bool ACROBOTIC_SSD1306::putChar(unsigned char ch) {
   }
   return 1;
 }
-
+  
 void ACROBOTIC_SSD1306::putString(const char *string) {
   unsigned char i = 0;
   while (string[i]) {
@@ -299,3 +315,4 @@ void ACROBOTIC_SSD1306::setInverseDisplay() {
 }
 
 ACROBOTIC_SSD1306 oled; // Pre-instantiate object
+*/

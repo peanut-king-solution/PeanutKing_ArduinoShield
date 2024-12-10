@@ -12,7 +12,7 @@ rgbc_t rgbc;
 void setup(void) {
   pinMode(2, OUTPUT);
   digitalWrite(2, HIGH);
-  Serial.begin(115200);  // start serial for output
+  Serial.begin(9600);  // start serial for output
 }
 
 void loop(void) {
@@ -69,9 +69,10 @@ void printcolor(uint8_t x) {
 
 color_t readAdvColor(hsl_t hsl) {
   if      ( hsl.l < 80 && hsl.s < 60  ) return black;
-  else if ( hsl.h < 80 && hsl.h > 50)   return yellow;
+  else if ( hsl.h < 80 && hsl.h > 50  )   return yellow;
   else if ( hsl.h > 150 && hsl.s < 30 && hsl.l > 60 )  return white;
   else if ( hsl.h < 15 || hsl.h > 315 ) return red;
   else if ( hsl.h < 150 )               return green;
   else                                  return blue;
 }
+
