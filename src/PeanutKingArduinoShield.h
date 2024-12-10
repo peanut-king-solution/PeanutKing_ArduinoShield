@@ -11,9 +11,14 @@
 #include <Arduino.h>
 #include "IICIT.h"
 #include "OLED.h"
-#include "TimerOneOVF.h"
+#include "CompoundEye.h"
+//#include "Wire.h"
+#include "TimerOneOVF.h"                          
 #include "SevenSegment.h"
-#include "LedMatrix.h"
+#include "LedMatrix.h" 
+#include "U8glib.h"
+//#include <Servo.h>
+#include <Accelerometer.h>
 
 #pragma once
 #ifndef PeanutKingArduinoShield_H
@@ -31,28 +36,44 @@
 #define max3v(v1, v2, v3)   ((v1)<(v2)? ((v2)<(v3)?(v3):(v2)):((v1)<(v3)?(v3):(v1)))
 #define min3v(v1, v2, v3)   ((v1)>(v2)? ((v2)>(v3)?(v3):(v2)):((v1)>(v3)?(v3):(v1)))
 
-
 #define TCAADDR     0x70
 #define PIN_BUTTON    1
 #define PIN_MOTOR     1
 #define ADDR_MONITOR  1
 #define ADDR_COMPASS  1
 #define ADDR_MULPLXR  1
-// #define colorSensor
+// #define ColorSensor
 
 // PeanutkingCompass
 // oled
+// servo
+
 // multiplexer
+#define C8 8
+#define C7 7
+#define C6 6
+#define C5 5
+#define C4 4
+#define C3 3
+#define C2 2
+#define C1 1
 // PeanutkingColorSensor
 // Ultrasound
+#define D8 8
+#define D7 7
+#define D5 5
+#define D4 4
+#define D3 3
 
 typedef enum { front = 0, left, right, back } sensorNum;
 
 typedef enum {
-  black=0,  white,   grey,
+  black=0,  white,  
   red,      green,   blue, 
-  yellow,   cyan,    magenta
+  yellow,cyan, purple
 } color_t;
+
+typedef enum {buttonA=0,buttonB,buttonC} button_t;
 
 typedef struct {
   uint32_t  c;      //[0-65536]
@@ -73,7 +94,7 @@ typedef struct {
   uint8_t b;
 } rgb_t; 
 
-
+void i2cRxCallback(const uint8_t _status);
 void I2CSend(IICIT::Handle handle, uint8_t *data, uint8_t length);
 void I2CRead(IICIT::Handle handle, uint8_t *data, uint8_t length);
 void _statusError(const uint8_t _status);
@@ -89,7 +110,11 @@ class Multiplexer {
     mulPlxHandle = gIIC->RegisterDevice(TCAADDR, 1, IICIT::Speed::SLOW);
   }
   void select(uint8_t i) {
-    if (i > 9) return;
+    if (i >= 9) {
+      Serial.begin(9600);
+      Serial.print("non exist pin selected");
+      return;
+    }
     uint8_t message[1] = { 0x01 << (idx[i]) };
     uint8_t _status = gIIC->Write(mulPlxHandle, message, 1);
     if (_status != 0) {
@@ -104,32 +129,38 @@ class Multiplexer {
 };
 
 //color sensor
-class colorSensor {
+class ColorSensor {
  public:
   Multiplexer multiplexer;
-  colorSensor(void) {
+  ColorSensor(void) {
     clrSnrHandle = gIIC->RegisterDevice(0x11, 1, IICIT::Speed::SLOW);
   }
 
-  uint8_t getcolor(uint8_t index) {
+  uint8_t getcolor(uint8_t index=NULL) {
     uint8_t cmd = 0x01, ans;
-    multiplexer.select(index);
+    if(index!=NULL){
+      multiplexer.select(index);
+    }
     I2CSend(clrSnrHandle, &cmd, 1);
     I2CRead(clrSnrHandle, &ans, 1);
     return ans;
   }
-  rgb_t getrgb(uint8_t index ) {
+  rgb_t getrgb(uint8_t index=NULL) {
     uint8_t cmd = 0x08;
     rgb_t rgb;
-    multiplexer.select(index);
+    if(index!=NULL){
+      multiplexer.select(index);
+    }
     I2CSend(clrSnrHandle, &cmd, 1);
     I2CRead(clrSnrHandle, (uint8_t *)&rgb, 3);
     return rgb;
   }
-  hsl_t gethsl(uint8_t index ) {
+  hsl_t gethsl(uint8_t index=NULL) {
     uint8_t cmd = 0x03;
     hsl_t hsl;
-    multiplexer.select(index);
+    if(index!=NULL){
+      multiplexer.select(index);
+    }
     I2CSend(clrSnrHandle, &cmd, 1);
     I2CRead(clrSnrHandle, (uint8_t *)&hsl, 4);
   // hsl->h = buff[0]|buff[1]<<8;
@@ -137,12 +168,13 @@ class colorSensor {
   // hsl->l = buff[3];
     return hsl;
   }
-  rgbc_t getrgbc(uint8_t index ) {
+  rgbc_t getrgbc(uint8_t index=NULL) {
     uint8_t cmd = 0x02;
     uint8_t _status;
     rgbc_t rgbc;
-
-    multiplexer.select(index);
+    if(index!=NULL){
+      multiplexer.select(index);
+    }
     I2CSend(clrSnrHandle, &cmd, 1);
     I2CRead(clrSnrHandle, (uint8_t *)&rgbc, 16);
 
@@ -203,7 +235,6 @@ class Button {
 
     return (button&(1<<i));
   }
-
     // if      (value > 550) button  = 0;
     // else if (value > 330) button  = 1;
     // else if (value > 230) button  = 2;
@@ -215,17 +246,20 @@ class Button {
   const uint8_t pin = A3;
 };
 
-
 // getCompass -----------------------------------------------------
 class Compass {
  public:
+  Multiplexer multiplexer;
   Compass(void) : addr(8) {
     cpsHandle = gIIC->RegisterDevice(addr, 1, IICIT::Speed::SLOW);
   }
   Compass(int8_t _addr) : addr(_addr) {
     cpsHandle = gIIC->RegisterDevice(addr, 1, IICIT::Speed::SLOW);
   }
-  float get(uint8_t cmd = 0x55) {
+  float get(uint8_t index=NULL, uint8_t cmd = 0x55) {
+    if(index!=NULL ){
+      multiplexer.select(index);
+    }
     uint16_t temp=0;
     uint8_t _status;
 
@@ -242,8 +276,8 @@ class Compass {
       _statusError(_status);
       return 0;
     }
-    temp  = data[1] & 0xFF;
-    temp |= (data[2] << 8);
+    temp  = data[1] & 0xFF; // 1111 & data[1]            -> 1111data[1]
+    temp |= (data[2] << 8); // 1111data[1] | data[2]0000 -> data[2]data[1]
     answer = temp/100.0;
     return answer;
   }
@@ -258,32 +292,67 @@ class Compass {
 // getUltrasonic --------------------------------------------------
 class Ultrasonic {
  public:
+  Ultrasonic(void):txPin(NULL), rxPin(NULL){
+
+  }
   Ultrasonic(uint8_t tx, uint8_t rx) :
   txPin(tx), rxPin(rx) {
     pinMode(tx, OUTPUT);
     pinMode(rx, INPUT);
   }
+
+  //for PeanutKingArduinoShield object internally use, need tx pin parameter
+  uint16_t get(uint16_t tx_pin,uint16_t rx_pin=NULL){
+    if(rx_pin==NULL){
+      switch(tx_pin){
+        case 13: rx_pin=12; break;
+        case 12: rx_pin=8;  break;
+        case 8:  rx_pin=7;  break;
+        case 7:  rx_pin=5;  break;
+        case 5:  rx_pin=4;  break;
+        case 4:  rx_pin=3;  break;
+        default:
+          return -1;
+      }
+    }
+    pinMode(tx_pin, OUTPUT);
+    pinMode(rx_pin, INPUT);
+    digitalWrite(tx_pin, LOW);
+    delayMicroseconds(2);
+    digitalWrite(tx_pin, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(tx_pin, LOW);
+    return _cal_distance(pulseIn(rx_pin, HIGH));
+  }
+
+  //for ultrasonic object externally init and use, Tx,Rx pin are init ed at object initialization
   uint16_t get(void) {
-    uint32_t duration=0;
-    uint16_t distance=0;
     digitalWrite(txPin, LOW);
     delayMicroseconds(2);
     digitalWrite(txPin, HIGH);
     delayMicroseconds(10);
     digitalWrite(txPin, LOW);
-    duration = pulseIn(rxPin, HIGH, 13000);
-    distance = ( duration==0 ) ? 888 : duration*0.017; //0.034/2;
-    return distance;
+    return _cal_distance(pulseIn(rxPin, HIGH));
+  }
+
+  double _cal_distance(unsigned long durationMicroSec){
+    double speedOfSoundInCmPerMs = 0.03313 + 0.0000606 * 19.307; // Cair ≈ (331.3 + 0.606 ⋅ ϑ) m/s
+    double distanceCm = durationMicroSec / 2.0 * speedOfSoundInCmPerMs;
+    if (distanceCm == 0 || distanceCm > 400) {
+        return -1;
+    } else {
+        return distanceCm;
+    }
   }
   const uint8_t txPin, rxPin;
 };
 
-
+// set Motor -----------------------------------------------------
 class Motor {
  public:
   Motor(void) :
-  dirPin  {6, 10},
-  dir2Pin {9, 11} {
+  dirPin  {6, 11},
+  dir2Pin {9, 10} {
     pinMode(dirPin[0], OUTPUT);
     pinMode(dirPin[1], OUTPUT);
     pinMode(dir2Pin[0], OUTPUT);
@@ -295,15 +364,15 @@ class Motor {
     for(uint8_t i=0; i<2; i++) {
       if ( speed[i]>0 && speed[i]<256 ) {
         analogWrite(dirPin[i], speed[i]);
-        digitalWrite(dir2Pin[i], LOW);
+        analogWrite(dir2Pin[i], LOW);
       } else
       if ( speed[i]<0 && speed[i]>-256 ) {
-        digitalWrite(dirPin[i], LOW);
-        analogWrite(dir2Pin[i], -speed[i]);
+        analogWrite(dirPin[i], LOW);
+        analogWrite(dir2Pin[i], speed[i]);
       }
       else {
-        digitalWrite(dirPin[i], LOW);
-        digitalWrite(dir2Pin[i], LOW);
+        analogWrite(dirPin[i], LOW);
+        analogWrite(dir2Pin[i], LOW);
       }
     }
   }
@@ -311,20 +380,129 @@ class Motor {
   const uint8_t dirPin[2], dir2Pin[2];
 };
 
-
-
 // PeanutKingArduinoShield -----------------------------------------------------
 class PeanutKingArduinoShield {
  public:
-  PeanutKingArduinoShield(void) {}
   Button      button;
   Compass     compass;
-  colorSensor rgbcolor;
-  
-  hsl_t   readhsl(uint8_t index);
-  color_t readcolor(uint8_t index);
-  rgbc_t  readrgb(uint8_t index);
+  ColorSensor rgbcolor;
+  Multiplexer multiplexer;
+  CompoundEye compoundEye;
+  Ultrasonic ultrasonic;
+  Motor motor;
+  //Servo  servoA0,servoA1,servoA2,servoA3,servoD3,servoD4,servoD5,servoD7,servoD8,servo12,servo13;
+  Accelerometer accelerometer;
+  U8GLIB_SSD1306_128X64 oled;
+  PeanutKingArduinoShield(void) {
+    Serial.begin(115200);
+    U8GLIB_SSD1306_128X64 oled(U8G_I2C_OPT_NONE|U8G_I2C_OPT_DEV_0);
+  }
+
+  //Multiplexer
+  void pinSelect(uint8_t);
+
+  //ColorSensor //current color sensor providing incorrect rgb value in percentage and worng hsl, and it related to firmware
+  //if the firmware are already updated, please use the function in next column //  |
+  hsl_t   readhsl(uint8_t pin_number=NULL);                                     //  |            
+  color_t readcolor(uint8_t pin_number=NULL);                                   //  |            
+  rgb_t  readrgb(uint8_t pin_number=NULL);                                      //  |            
+  rgbc_t  readrgbc(uint8_t pin_number=NULL);                                    //  |            
+  color_t readAdvColor(hsl_t hsl) {                                             //  |            
+    if      ( hsl.l < 80 && hsl.s < 60  ) return black;                         //  |            
+    //else if ( hsl.h < 80 && hsl.h > 50)   return yellow;                      //  |            
+    else if ( hsl.h > 150 && hsl.s < 30 && hsl.l > 60 )  return white;          //  |            
+    //else if ( hsl.h < 15 || hsl.h > 315 ) return red;                         //  |            
+    //else if ( hsl.h < 150 )               return green;                       //  |            
+    //else                                  return blue;                        //  | 
+                                                                                //  |                 
+     if (hsl.h > 330 || hsl.h < 30) {                                           //  |                                     
+        return red;                                                             //  |     
+    } else if (hsl.h >= 30 && hsl.h < 90) {                                     //  |                                           
+        return yellow;                                                          //  |         
+    } else if (hsl.h >= 90 && hsl.h < 150) {                                    //  |                                             
+        return green;                                                           //  |       
+    } else if (hsl.h >= 150 && hsl.h < 210) {                                   //  |                                             
+        return blue;                                                            //  |       
+    } else if (hsl.h >= 210 && hsl.h < 270) {                                   //  |                                             
+        return blue;                                                            //  |       
+    } else if (hsl.h >= 270 && hsl.h < 330) {                                   //  |                                             
+        return purple;                                                          //  |              
+    }                                                                           //  |       
+  }                                                                             //  V this                  
+  //ColorSensor for updated firmware that provided correct rgb in 0 - 255 and correct hsl
+  hsl_t   gethsl(uint8_t pin_number=NULL);
+  rgb_t  getrgb(uint8_t pin_number=NULL);
+
+  //Compass
+  uint16_t compassRead(uint8_t index=NULL, uint8_t cmd=0x55);                   //index for multiplexer choice (optional) C1 to C8
+                                                                                //cmd normally fixed at 0x55 to take yaw data only
+
+  //CompoundEye                 
+  void compoundEyeRead(void);                                                   //for compatibility,better keep this
+  void compoundEyeReadAll(uint8_t index=NULL);                                  //functionally identical to compoundEyeRead(void) but provided multiplexer(optional)
+  int compoundEyeRead(uint8_t data_id,uint8_t index=NULL);                      //get data by data id, provided multiplexer(optional)
+
+  //Button                  
+  uint16_t getButtonA(void);                                                    //simply get button boolean value, 0:OFF; 1:ON
+  uint16_t getButtonB(void);                  
+  uint16_t getButtonC(void);                  
+
+  //Motor                 
+  void setMotor(int16_t left ,int16_t right);                                   //set left and right motor from -255 to 255
+
+  //Ultrasonic
+  uint16_t getUltrasonic(uint16_t tx_pin_number,uint16_t rx_pin_number=NULL);   //get ultrasonic by input trig pin as tx_pin_number
+                                                                                //in most case, rx_pin_number can be ignore as trig and echo pin must be together
+                                                                                //rx_pin_number are for situation that student got wrong wire that shifted trig and echo pin
+
+  //Servo
+  //uint16_t setServo(uint16_t pin_number,uint16_t servo_degree);               //directly drive servo by input pin_number and servo_degree
+                                                                                //curretly not included because
+                                                                                //servo library conflict with motor that pin 9, pin 10 pwm control 
+                                                                                //took as timer by servo lib, when motor control by pin 9 and pin 10
+                                                                                //method1:
+                                                                                //set the timer only when servo enable and reset the timer immediately after
+                                                                                //the servo reach the settled angle
+                                                                                //method2:
+                                                                                //software timer
+                                                                                //the pwm control for servo motor only need 50hz so a async task loop with 0.02 interval
+                                                                                //should be ok for controllment too
+
+  //Accelerometer
+  private:
+  bool inited[9];                                                               //main I2C + multiplexer 1 to 8 (optional)
+  bool isGyroscopeInited(uint16_t index=NULL){                                  //check for init of mpu6050, init it by index if not inited 
+    if(index!=NULL){                                                            //return false if it has not inited yet and it is just inited 
+      multiplexer.select(index); 
+      if(!inited[index]){
+        inited[index]=1;
+        accelerometer.initMPU6050();
+      }
+      return false;
+    }else if((index==NULL || index==0) && !inited[0]){
+      inited[index]=1;
+      accelerometer.initMPU6050();
+      return false;
+    }
+    return true;
+  }
+  public:                                                                       //usage same as microbit library except no need to init MPU6050
+                                                                                //axis: axis_x/axis_y/axis_z
+  float getGyroscope(axisXYZ axis, gyroSen sensitivity,uint8_t index=NULL);     //gyroSen:range_250_dps/range_500_dps/range_1000_dps/range_2000_dps
+  float getAxisRotation(axisXYZ axis, accelSen sensitivity,uint8_t index=NULL); //accelSen: range_2_g/range_4_g/range_8_g/range_16_g
+  float getAxisAcceleration(axisXYZ axis, accelSen sensitivity,uint8_t index=NULL);
+
+                  
+  //Oled                  
+                                                                                //student need to pass a update function as a parameter to update oled screen content
+  void oledUpdate(void (*updateFun)(void)){
+    oled.firstPage();
+    do{
+      oled.setPrintPos(0,10);                                                   //pre set pos at (0,10)
+      oled.setFont(u8g_font_unifont);                                           //in case student didn't set font
+      updateFun();
+    }while(oled.nextPage());
+  }
+
 };
-
 #endif
-

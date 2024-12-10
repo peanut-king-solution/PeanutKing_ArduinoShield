@@ -21,7 +21,7 @@ Multiplexer multiplexer = Multiplexer();
 
 Button button = Button();
 Compass compass = Compass();
-//Ultrasonic ultrasonic = Ultrasonic(6, 7);
+Ultrasonic ultrasonic = Ultrasonic(13, 12);
 //colorSensor rgbcolor = colorSensor();
 Motor motor = Motor();
 
@@ -77,10 +77,14 @@ void loop(void) {
     Serial.println();
   }
   delay(1);
-  //  motor.set(100, 100);      // set motor speed (left right)
+   motor.set(100, 100);      // set motor speed (left right)
   //  buttonTest();
+  //  ultrasonicTest();
 }
 
+void ultrasonicTest(){
+  Serial.print("ultrasonic read:");Serial.println(ultrasonic.get()); //get ultrasonic reading
+}
 
 void buttonTest(void) {
   Serial.print( analogRead(A3) );

@@ -107,7 +107,7 @@ public:
 
 private:
   enum mask_t : uint8_t {
-    MASK_TWCR_CMD = 0x0F,
+    MASK_TWCR_CMD = 0xFF,
   };
 
   enum class State : uint8_t {  // types

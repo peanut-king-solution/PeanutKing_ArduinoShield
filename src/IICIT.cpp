@@ -86,7 +86,7 @@ IICIT::status_t IICIT::Read(const Handle &handle, uint8_t data[], const uint32_t
   const IICIT::Mode mode = Mode::READ;
   const uint32_t address = DISCARD_ADDRESS;
   const uint8_t delay_ms = 0;
-
+  SetSpeed(Speed::INIT);
   // Calculate buffer remaining capacity
   uint8_t capacity = (IICIT::size_t::SIZE_BUFFER - handle.address_size);
 
@@ -118,7 +118,7 @@ IICIT::status_t IICIT::Read(const Handle &handle, uint8_t data[], const uint32_t
 IICIT::status_t IICIT::Write(const Handle &handle, const uint8_t data[], const uint32_t bytes, const uint8_t delay_ms) {
   const IICIT::Mode mode = Mode::WRITE;
   const uint32_t address = DISCARD_ADDRESS;
-
+  SetSpeed(Speed::INIT);
   // Calculate buffer remaining capacity
   uint8_t capacity = (IICIT::size_t::SIZE_BUFFER - handle.address_size);
 
@@ -232,11 +232,11 @@ void IICIT::SetSpeed(const IICIT::Speed speed) {
   uint16_t value = ((speed == Speed::SLOW) ? 100 : 400);
 
   // calculate bitrate division
-  bitrate_div = ((F_CPU / 1000l) / value);
+  bitrate_div = ((F_CPU / 1000l) / value)/2;
 
-  if (bitrate_div >= 16) {
-    bitrate_div = (bitrate_div - 16) / 2;
-  }
+  //if (bitrate_div >= 16) {
+  //  bitrate_div = (bitrate_div - 16) / 2;
+  //}
   outb(TWBR, bitrate_div);
 }
 
@@ -366,14 +366,15 @@ void IICIT::ProcessCallback(void) {
 
 inline void IICIT::SendStart(void) {
   // send start condition
-  outb(TWCR, (inb(TWCR) & MASK_TWCR_CMD) | _BV(TWINT) | _BV(TWSTA));
+  //outb(TWCR, (inb(TWCR) & MASK_TWCR_CMD) | _BV(TWINT) | _BV(TWSTA) |  _BV(TWEN));//original
+  outb(TWCR,  0b00000111 | _BV(TWINT) | _BV(TWSTA) |  _BV(TWEN));//modify to operate with u8g i2c implementation
 }
 
 inline void IICIT::Stop(void) {
   // transmit stop condition
   // leave with TWEA on for slave receiving
-  outb(TWCR, (inb(TWCR) & MASK_TWCR_CMD) | _BV(TWINT) | _BV(TWEA) | _BV(TWSTO));
-
+  //outb(TWCR, (inb(TWCR) & MASK_TWCR_CMD) | _BV(TWINT) | _BV(TWEA) | _BV(TWSTO)); //original
+  outb(TWCR,  0b00000111 | _BV(TWINT) | _BV(TWEA) | _BV(TWSTO));//modify to operate with u8g i2c implementation
   // Stop should execute very quickly
   uint8_t timeout = 100;
 
@@ -395,11 +396,15 @@ inline void IICIT::SendByte(const uint8_t data) {
 }
 
 inline void IICIT::SendACK(void) {
-  outb(TWCR, (inb(TWCR) & MASK_TWCR_CMD) | _BV(TWINT) | _BV(TWEA));
+  //outb(TWCR, (inb(TWCR) & MASK_TWCR_CMD) | _BV(TWINT) | _BV(TWEA));//original
+  outb(TWCR, 0b00000111 | _BV(TWINT) | _BV(TWEA));//modify to operate with u8g i2c implementation
 }
 
 inline void IICIT::SendNACK(void) {
-  outb(TWCR, (inb(TWCR) & MASK_TWCR_CMD) | _BV(TWINT));
+  //TWINT : TWI Intertupt Flag
+  //TWEA : TWI Enable Acknowledge Bit 
+  //outb(TWCR, (inb(TWCR) & MASK_TWCR_CMD) | _BV(TWINT));//original
+  outb(TWCR,0b00000111 | _BV(TWINT));//modify to operate with u8g i2c implementation
 }
 
 inline uint8_t IICIT::GetReceivedByte(void) {

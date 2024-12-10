@@ -18,6 +18,9 @@
   information.  All text above must be included in any redistribution.
 */
 
+
+/* currently disabled
+
 #ifndef OLED_H
 #define OLED_H
 
@@ -97,6 +100,7 @@ class ACROBOTIC_SSD1306 {
 
     void setTextXY(unsigned char Row, unsigned char Column);
     void clearDisplay();
+    void clearline(uint8_t line=0);
     void setBrightness(unsigned char Brightness);
     bool putChar(unsigned char c);
     void putString(const char *string);
@@ -126,9 +130,11 @@ class ACROBOTIC_SSD1306 {
     uint8_t m_col;              // Cursor column.
     uint8_t m_row;              // Cursor row (RAM).
     bool m_inverse=false;       // Inverse text.
+    bool inited=0;
     IICIT::Handle oledHandle;
 };
 
 extern ACROBOTIC_SSD1306 oled;  // ACROBOTIC_SSD1306 object
 
 #endif
+*/
