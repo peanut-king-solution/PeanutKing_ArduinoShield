@@ -301,7 +301,7 @@ class Ultrasonic {
     pinMode(rx, INPUT);
   }
 
-  //for PeanutKingArduinoShield object internally use, need tx pin parameter
+  //for PeanutKingArduinoShield object internally use, only need tx pin parameter
   uint16_t get(uint16_t tx_pin,uint16_t rx_pin=NULL){
     if(rx_pin==NULL){
       switch(tx_pin){
