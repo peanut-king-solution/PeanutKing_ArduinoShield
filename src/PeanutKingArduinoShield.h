@@ -349,7 +349,7 @@ class Ultrasonic {
 
 // set Motor -----------------------------------------------------
 class Motor {
- public:
+public:
   Motor(void) :
   dirPin  {6, 11},
   dir2Pin {9, 10} {
@@ -364,11 +364,11 @@ class Motor {
     for(uint8_t i=0; i<2; i++) {
       if ( speed[i]>0 && speed[i]<256 ) {
         analogWrite(dirPin[i], speed[i]);
-        analogWrite(dir2Pin[i], LOW);
+        digitalWrite(dir2Pin[i], LOW);
       } else
       if ( speed[i]<0 && speed[i]>-256 ) {
-        analogWrite(dirPin[i], LOW);
-        analogWrite(dir2Pin[i], speed[i]);
+        analogWrite(dirPin[i], speed[i]+255);
+        digitalWrite(dir2Pin[i], HIGH);
       }
       else {
         analogWrite(dirPin[i], LOW);
